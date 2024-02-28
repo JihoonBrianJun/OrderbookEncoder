@@ -10,11 +10,7 @@ def main(args):
     headers = {"accept": "application/json"}
 
     response = requests.get(url, headers=headers)
-
-    with open(args.result_path, 'w') as f:
-        f.write(response.text)
-    with open(args.result_path, 'r') as f:
-        results = json.load(f)
+    results = response.json()
 
     krw_results = []
     for result in results:
@@ -36,7 +32,6 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--result_path', type=str, default='./result/market_codes.json')
     parser.add_argument('--top_path', type=str, default='./result/top_market_codes.json')
     parser.add_argument('--topn', type=int, default=10)
     args = parser.parse_args()

@@ -10,17 +10,12 @@ def main(args):
         url = f"https://api.upbit.com/v1/orderbook?markets={market_code}"
         headers = {"accept": "application/json"}
         response = requests.get(url, headers=headers)
-        
-        with open(args.result_path, 'w') as f:
-            f.write(response.text)
-        with open(args.result_path, 'r') as f:
-            result = json.load(f)
+        result = response.json()
 
         print(result[0])
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--result_path', type=str, default='./result/orderbook_result.json')
     parser.add_argument('--market_codes_path', type=str, default='./result/top_market_codes.json')
     args = parser.parse_args()
     main(args)
