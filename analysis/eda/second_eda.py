@@ -1,11 +1,9 @@
-import requests
 import numpy as np
 import pandas as pd
-import torch
 from argparse import ArgumentParser
 
 def main(args):
-    ob = pd.read_csv('data/orderbook/BTCUSDT-bookTicker-2024-01-01.csv')
+    ob = pd.read_csv(args.orderbook_path)
     
     ob = ob[['best_bid_price', 'best_bid_qty', 'best_ask_price', 'best_ask_qty', 'transaction_time']]    
     ob['transaction_time'] = pd.to_datetime(ob['transaction_time'], unit='ms')
@@ -20,7 +18,7 @@ def main(args):
     ob = ob.groupby('transaction_sec')[['mid_price', 'qty_ratio']].last().reset_index().rename(columns={'transaction_sec': 'sec'})
     
     
-    tr = pd.read_csv('data/trade/BTCUSDT-trades-2024-01-01.csv')
+    tr = pd.read_csv(args.trade_path)
     
     tr = tr[['price', 'qty', 'time', 'is_buyer_maker']]
     tr['time'] = pd.to_datetime(tr['time'], unit='ms')
@@ -39,8 +37,10 @@ def main(args):
     print(agg.drop(['sec','mid_price'], axis=1).corr())
     
     
+    
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--path', type=str, default='')
+    parser.add_argument('--orderbook_path', type=str, default='/home/jay/UpbitTrade/analysis/data/orderbook/BTCUSDT-bookTicker-2024-01-01.csv')
+    parser.add_argument('--trade_path', type=str, default='/home/jay/UpbitTrade/analysis/data/trade/BTCUSDT-trades-2024-01-01.csv')
     args = parser.parse_args()
     main(args)
