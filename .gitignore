@@ -1,3 +1,6 @@
 config/*
 result/*
-analysis/data/*
+analysis/data/orderbook/*
+analysis/data/trade/*
+analysis/data/processed/*
+analysis/data/train/*
