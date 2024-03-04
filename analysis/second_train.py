@@ -32,10 +32,10 @@ def main(args):
     else:
         device = torch.device("cpu")
         
-    model = TransformerVanilla(model_dim=64, 
-                               n_head=2, 
-                               num_encoder_layers=2, 
-                               num_decoder_layers=2,
+    model = TransformerVanilla(model_dim=args.model_dim, 
+                               n_head=args.n_head, 
+                               num_encoder_layers=args.num_layers, 
+                               num_decoder_layers=args.num_layers,
                                src_dim=src.shape[-1], 
                                tgt_dim=tgt.shape[-1]).to(device)
     num_param = 0
@@ -76,6 +76,9 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/train')
+    parser.add_argument('--model_dim', type=int, default=64)
+    parser.add_argument('--n_head', type=int, default=2)
+    parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--gpu', type=bool, default=False)
     parser.add_argument('--epoch', type=int, default=1)
     parser.add_argument('--bs', type=int, default=16)
