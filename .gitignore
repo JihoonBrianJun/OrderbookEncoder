@@ -3,4 +3,4 @@ result/*
 analysis/data/orderbook/*
 analysis/data/trade/*
 analysis/data/processed/*
-analysis/data/train/*
+# analysis/data/train/*
