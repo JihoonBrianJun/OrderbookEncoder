@@ -12,9 +12,13 @@ class TransformerVanilla(nn.Module):
                                        num_encoder_layers=num_encoder_layers, 
                                        num_decoder_layers=num_decoder_layers, 
                                        batch_first=True)
+        self.out_proj = nn.Linear(model_dim, tgt_dim)
     
     def forward(self, src, tgt, src_mask=None, tgt_mask=None):
-        src = self.src_proj(torch.tensor(src).float())
-        tgt = self.tgt_proj(torch.tensor(tgt).float())
+        if type(src) != torch.Tensor:
+            src = torch.tensor(src)
+            tgt = torch.tensor(tgt)
+        src = self.src_proj(src)
+        tgt = self.tgt_proj(tgt)
         out = self.transformer(src, tgt, src_mask, tgt_mask)
-        return out
+        return self.out_proj(out)
