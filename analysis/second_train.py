@@ -56,7 +56,7 @@ def main(args):
             loss = loss_function(out.squeeze()[:,-1], tgt.squeeze()[:,-1])
             epoch_loss += loss.detach().cpu().item()
             loss.backward()
-            
+                    
             optimizer.step()
             optimizer.zero_grad()
         
@@ -64,13 +64,16 @@ def main(args):
         scheduler.step()
     
     test_loss = 0
+    correct = 0
     for idx, batch in tqdm(enumerate(test_loader)):
         src = batch['src'].to(torch.float32).to(device)
         tgt = batch['tgt'].to(torch.float32).to(device)
         out = model(src, tgt.to(device))
         loss = loss_function(out.squeeze()[:,-1], tgt.squeeze()[:,-1])
         test_loss += loss.detach().cpu().item()
+        correct += ((out.squeeze()[:,-1] * tgt.squeeze()[:,-1])>0).sum().item()
     print(f'Test Average Loss: {test_loss / (idx+1)}')
+    print(f'Test Correct: {correct} out of {args.bs*(idx+1)}')
     
     
 if __name__ == '__main__':
