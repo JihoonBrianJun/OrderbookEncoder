@@ -4,3 +4,4 @@ analysis/data/orderbook/*
 analysis/data/trade/*
 analysis/data/processed/*
 # analysis/data/train/*
+real_data/*
