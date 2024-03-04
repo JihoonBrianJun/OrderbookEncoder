@@ -66,6 +66,7 @@ def main(args):
     test_loss = 0
     correct = 0
     for idx, batch in tqdm(enumerate(test_loader)):
+        model.eval()
         src = batch['src'].to(torch.float32).to(device)
         tgt = batch['tgt'].to(torch.float32).to(device)
         out = model(src, tgt.to(device))
@@ -75,10 +76,13 @@ def main(args):
     print(f'Test Average Loss: {test_loss / (idx+1)}')
     print(f'Test Correct: {correct} out of {args.bs*(idx+1)}')
     
+    torch.save(model.state_dict(), args.save_dir)
+    
     
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/train')
+    parser.add_argument('--save_dir', type=str, default='/home/jay/UpbitTrade/analysis/vanilla.pt')
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
