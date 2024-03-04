@@ -63,8 +63,10 @@ def main(args):
     
     test_loss = 0
     for idx, batch in tqdm(enumerate(test_loader)):
-        out = model(batch['src'].to(torch.float32).to(device), batch['tgt'].to(torch.float32).to(device))
-        loss = loss_function(out.squeeze()[:,-1],batch['tgt'].to(torch.float32).squeeze()[:,-1])
+        src = batch['src'].to(torch.float32).to(device)
+        tgt = batch['tgt'].to(torch.float32).to(device)
+        out = model(src, tgt)
+        loss = loss_function(out.squeeze()[:,-1], tgt.squeeze()[:,-1])
         test_loss += loss.detach().cpu().item()
     print(f'Test Average Loss: {test_loss / (idx+1)}')
     
