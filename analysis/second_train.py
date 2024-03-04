@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
-from model.vanilla import TransformerVanilla
+from model.vanilla import TEncoderVanilla
 
 
 def main(args):
@@ -32,12 +32,13 @@ def main(args):
     else:
         device = torch.device("cpu")
         
-    model = TransformerVanilla(model_dim=args.model_dim, 
-                               n_head=args.n_head, 
-                               num_encoder_layers=args.num_layers, 
-                               num_decoder_layers=args.num_layers,
-                               src_dim=src.shape[-1], 
-                               tgt_dim=tgt.shape[-1]).to(device)
+    model = TEncoderVanilla(model_dim=args.model_dim,
+                            n_head=args.n_head,
+                            num_layers=args.num_layers,
+                            src_dim=src.shape[-1],
+                            tgt_dim=tgt.shape[-1],
+                            src_len=src.shape[-2],
+                            tgt_len=1).to(device)
     num_param = 0
     for _, param in model.named_parameters():
         num_param += param.numel()
@@ -51,9 +52,11 @@ def main(args):
         epoch_loss = 0
         for idx, batch in tqdm(enumerate(train_loader)):
             src = batch['src'].to(torch.float32).to(device)
+            out = model(src)
+
             tgt = batch['tgt'].to(torch.float32).to(device)
-            out = model(src, tgt)
-            loss = loss_function(out.squeeze()[:,-1], tgt.squeeze()[:,-1])
+            tgt = tgt.view(tgt.shape[0],-1)
+            loss = loss_function(out[:,-1], tgt[:,-1])
             epoch_loss += loss.detach().cpu().item()
             loss.backward()
                     
@@ -68,11 +71,14 @@ def main(args):
     for idx, batch in tqdm(enumerate(test_loader)):
         model.eval()
         src = batch['src'].to(torch.float32).to(device)
+        out = model(src)
+        
         tgt = batch['tgt'].to(torch.float32).to(device)
-        out = model(src, tgt.to(device))
-        loss = loss_function(out.squeeze()[:,-1], tgt.squeeze()[:,-1])
+        tgt = tgt.view(tgt.shape[0],-1)
+        loss = loss_function(out[:,-1], tgt[:,-1])
         test_loss += loss.detach().cpu().item()
-        correct += ((out.squeeze()[:,-1] * tgt.squeeze()[:,-1])>0).sum().item()
+        print(((out[:,-1] * tgt[:,-1])>0).shape)
+        correct += ((out[:,-1] * tgt[:,-1])>0).sum().item()
     print(f'Test Average Loss: {test_loss / (idx+1)}')
     print(f'Test Correct: {correct} out of {args.bs*(idx+1)}')
     
