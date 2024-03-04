@@ -7,6 +7,9 @@ import pandas as pd
 from argparse import ArgumentParser
 from tqdm import tqdm
 
+import torch
+from analysis.model.vanilla import TransformerVanilla
+
 def main(args):
     with open(args.market_codes_path, 'r') as f:
         market_codes = json.load(f)
@@ -39,6 +42,7 @@ def main(args):
     
     all_tr = pd.DataFrame(trade_data)
     
+    device = torch.device("cpu")
     
     for market_code in market_codes:
         try:
@@ -78,13 +82,28 @@ def main(args):
             print(src.shape)
             print(tgt.shape)
             
-            code_path = os.path.join('real_data', market_code)
-            if not os.path.exists(code_path):
-                os.makedirs(code_path)
-            with open(os.path.join(code_path, 'src.npy'), 'wb') as f:
-                np.save(f, src)
-            with open(os.path.join(code_path, 'tgt.npy'), 'wb') as f:
-                np.save(f, tgt)
+            # code_path = os.path.join('real_data', market_code)
+            # if not os.path.exists(code_path):
+            #     os.makedirs(code_path)
+            # with open(os.path.join(code_path, 'src.npy'), 'wb') as f:
+            #     np.save(f, src)
+            # with open(os.path.join(code_path, 'tgt.npy'), 'wb') as f:
+            #     np.save(f, tgt)
+                        
+            
+            model = TransformerVanilla(model_dim=args.model_dim, 
+                            n_head=args.n_head, 
+                            num_encoder_layers=args.num_layers, 
+                            num_decoder_layers=args.num_layers,
+                            src_dim=src.shape[-1], 
+                            tgt_dim=tgt.shape[-1]).to(device)
+            model.load_state_dict(torch.load(args.model_ckpt_path, map_location=device))
+            
+            src = torch.tensor(src).to(torch.float32).to(device)
+            tgt = torch.tensor(tgt).to(torch.float32).to(device)
+            out = model(src, tgt)
+            print(f'model output: {out.squeeze()[:,-1]}')
+            print(f'target: {tgt.squeeze()[:,-1]}')
         
         except:
             pass
@@ -93,9 +112,13 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--market_codes_path', type=str, default='./result/top_market_codes.json')
+    parser.add_argument('--model_ckpt_path', type=str, default='analysis/model.pt')
     parser.add_argument('--data_len', type=int, default=120)
     parser.add_argument('--pred_gap', type=int, default=60)
     parser.add_argument('--data_hop', type=int, default=20)
     parser.add_argument('--mid_price_change_divisor', type=int, default=1)
+    parser.add_argument('--model_dim', type=int, default=64)
+    parser.add_argument('--n_head', type=int, default=2)
+    parser.add_argument('--num_layers', type=int, default=2)
     args = parser.parse_args()
     main(args)
