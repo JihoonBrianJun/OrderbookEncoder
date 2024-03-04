@@ -50,8 +50,10 @@ def main(args):
     for epoch in tqdm(range(args.epoch)):
         epoch_loss = 0
         for idx, batch in tqdm(enumerate(train_loader)):
-            out = model(batch['src'].to(torch.float32).to(device), batch['tgt'].to(torch.float32).to(device))
-            loss = loss_function(out.squeeze()[:,-1],batch['tgt'].to(torch.float32).squeeze()[:,-1])
+            src = batch['src'].to(torch.float32).to(device)
+            tgt = batch['tgt'].to(torch.float32).to(device)
+            out = model(src, tgt)
+            loss = loss_function(out.squeeze()[:,-1], tgt.squeeze()[:,-1])
             epoch_loss += loss.detach().cpu().item()
             loss.backward()
             
@@ -65,7 +67,7 @@ def main(args):
     for idx, batch in tqdm(enumerate(test_loader)):
         src = batch['src'].to(torch.float32).to(device)
         tgt = batch['tgt'].to(torch.float32).to(device)
-        out = model(src, tgt)
+        out = model(src, tgt.to(device))
         loss = loss_function(out.squeeze()[:,-1], tgt.squeeze()[:,-1])
         test_loss += loss.detach().cpu().item()
     print(f'Test Average Loss: {test_loss / (idx+1)}')
