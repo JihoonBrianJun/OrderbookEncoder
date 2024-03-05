@@ -5,3 +5,4 @@ analysis/data/trade/*
 analysis/data/processed/*
 # analysis/data/train/*
 real_data/*
+analysis/model.pt

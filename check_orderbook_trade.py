@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from tqdm import tqdm
 
 import torch
-from analysis.model.vanilla import TransformerVanilla
+from analysis.model.vanilla import TEncoderVanilla
 
 def main(args):
     with open(args.market_codes_path, 'r') as f:
@@ -72,12 +72,12 @@ def main(args):
             agg['maker_ratio'] = agg['maker_ratio'].apply(lambda x: np.log(x)).fillna(method='ffill')
             agg['mid_price_change'] = agg['mid_price'].diff()            
             
-            agg['gap_mid_price_change'] = agg['mid_price'].diff(periods=args.pred_gap) / agg['mid_price'].diff(periods=args.pred_gap).std()
+            agg['gap_mid_price_change'] = agg['mid_price'].diff(periods=args.pred_hop) / agg['mid_price'].diff(periods=args.pred_hop).std()
             src = np.stack([agg.iloc[i:i+args.data_len][['qty_ratio', 'maker_ratio']].to_numpy()
-                            for i in range(0, agg.shape[0]-args.data_len-args.pred_gap, args.data_hop)], axis=0)
-            tgt = np.stack([agg.iloc[i:i+args.pred_gap]['gap_mid_price_change'].to_numpy()
-                            for i in range(args.data_len, agg.shape[0]-args.pred_gap, args.data_hop)], axis=0)
-            tgt = np.expand_dims(tgt, axis=2)
+                            for i in range(0, agg.shape[0]-args.data_len-args.pred_len, args.data_hop)], axis=0)
+            tgt = np.stack([agg.iloc[i:i+args.pred_len]['gap_mid_price_change'].to_numpy()
+                            for i in range(args.data_len, agg.shape[0]-args.pred_len, args.data_hop)], axis=0)
+            tgt = np.expand_dims(tgt[:,args.pred_hop-1::args.pred_hop], axis=2)
             
             print(src.shape)
             print(tgt.shape)
@@ -91,19 +91,21 @@ def main(args):
             #     np.save(f, tgt)
                         
             
-            model = TransformerVanilla(model_dim=args.model_dim, 
-                            n_head=args.n_head, 
-                            num_encoder_layers=args.num_layers, 
-                            num_decoder_layers=args.num_layers,
-                            src_dim=src.shape[-1], 
-                            tgt_dim=tgt.shape[-1]).to(device)
+            model = TEncoderVanilla(model_dim=args.model_dim,
+                                    n_head=args.n_head,
+                                    num_layers=args.num_layers,
+                                    src_dim=src.shape[-1],
+                                    tgt_dim=tgt.shape[-1],
+                                    src_len=src.shape[-2],
+                                    tgt_len=tgt.shape[-2]).to(device)
             model.load_state_dict(torch.load(args.model_ckpt_path, map_location=device))
             
             src = torch.tensor(src).to(torch.float32).to(device)
+            out = model(src)
+            
             tgt = torch.tensor(tgt).to(torch.float32).to(device)
-            out = model(src, tgt)
-            print(f'model output: {out.squeeze()[:,-1]}')
-            print(f'target: {tgt.squeeze()[:,-1]}')
+            print(f'model output: {out.squeeze().mean(dim=1)}')
+            print(f'target: {tgt.squeeze().mean(dim=1)}')
         
         except:
             pass
@@ -114,8 +116,9 @@ if __name__ == '__main__':
     parser.add_argument('--market_codes_path', type=str, default='./result/top_market_codes.json')
     parser.add_argument('--model_ckpt_path', type=str, default='analysis/model.pt')
     parser.add_argument('--data_len', type=int, default=120)
-    parser.add_argument('--pred_gap', type=int, default=60)
     parser.add_argument('--data_hop', type=int, default=20)
+    parser.add_argument('--pred_len', type=int, default=300)
+    parser.add_argument('--pred_hop', type=int, default=60)
     parser.add_argument('--mid_price_change_divisor', type=int, default=1)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)

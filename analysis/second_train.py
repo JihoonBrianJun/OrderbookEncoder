@@ -38,7 +38,7 @@ def main(args):
                             src_dim=src.shape[-1],
                             tgt_dim=tgt.shape[-1],
                             src_len=src.shape[-2],
-                            tgt_len=1).to(device)
+                            tgt_len=tgt.shape[-2]).to(device)
     num_param = 0
     for _, param in model.named_parameters():
         num_param += param.numel()
@@ -56,7 +56,7 @@ def main(args):
 
             tgt = batch['tgt'].to(torch.float32).to(device)
             tgt = tgt.view(tgt.shape[0],-1)
-            loss = loss_function(out[:,-1], tgt[:,-1])
+            loss = loss_function(out.mean(dim=1), tgt.mean(dim=1))
             epoch_loss += loss.detach().cpu().item()
             loss.backward()
                     
@@ -75,10 +75,9 @@ def main(args):
         
         tgt = batch['tgt'].to(torch.float32).to(device)
         tgt = tgt.view(tgt.shape[0],-1)
-        loss = loss_function(out[:,-1], tgt[:,-1])
+        loss = loss_function(out.mean(dim=1), tgt.mean(dim=1))
         test_loss += loss.detach().cpu().item()
-        print(((out[:,-1] * tgt[:,-1])>0).shape)
-        correct += ((out[:,-1] * tgt[:,-1])>0).sum().item()
+        correct += ((out.mean(dim=1) * tgt.mean(dim=1))>0).sum().item()
     print(f'Test Average Loss: {test_loss / (idx+1)}')
     print(f'Test Correct: {correct} out of {args.bs*(idx+1)}')
     
