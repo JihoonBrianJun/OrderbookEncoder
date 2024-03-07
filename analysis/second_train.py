@@ -52,7 +52,7 @@ def main(args):
         epoch_loss = 0
         for idx, batch in tqdm(enumerate(train_loader)):
             src = batch['src'].to(torch.float32).to(device)
-            tgt = batch['tgt'].to(torch.float32).to(device)
+            tgt = torch.nan_to_num(batch['tgt']).to(torch.float32).to(device)
             
             out = model(src, tgt[:,:-1,:])
             label = tgt[:,1:,:].squeeze(dim=2)
@@ -72,7 +72,7 @@ def main(args):
     for idx, batch in tqdm(enumerate(test_loader)):
         model.eval()
         src = batch['src'].to(torch.float32).to(device)
-        tgt = batch['tgt'].to(torch.float32).to(device)
+        tgt = torch.nan_to_num(batch['tgt']).to(torch.float32).to(device)
         
         out = model(src, tgt[:,:-1,:])
         label = tgt[:,1:,:].squeeze(dim=2)
