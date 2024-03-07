@@ -66,6 +66,7 @@ def main(args):
         
         print(f'Epoch {epoch} Average Loss: {epoch_loss/(idx+1)}')
         scheduler.step()
+        torch.save(model.state_dict(), args.save_dir)
     
     test_loss = 0
     correct = 0
@@ -83,8 +84,6 @@ def main(args):
     print(f'Test Average Loss: {test_loss / (idx+1)}')
     print(f'Test Correct: {correct} out of {args.bs*(tgt.shape[1]-1)*(idx+1)}')
     
-    torch.save(model.state_dict(), args.save_dir)
-    
     
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -96,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=bool, default=False)
     parser.add_argument('--epoch', type=int, default=1)
     parser.add_argument('--bs', type=int, default=16)
-    parser.add_argument('--lr', type=int, default=0.001)
+    parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--gamma', type=int, default=0.1)
     parser.add_argument('--train_ratio', type=float, default=0.9)
     args = parser.parse_args()
