@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
-from model.vanilla import TEncoderVanilla
+from model.obtr2pr import OrderbookTrade2Price
 
 
 def main(args):
@@ -32,13 +32,13 @@ def main(args):
     else:
         device = torch.device("cpu")
         
-    model = TEncoderVanilla(model_dim=args.model_dim,
-                            n_head=args.n_head,
-                            num_layers=args.num_layers,
-                            src_dim=src.shape[-1],
-                            tgt_dim=tgt.shape[-1],
-                            src_len=src.shape[-2],
-                            tgt_len=tgt.shape[-2]).to(device)
+    model = OrderbookTrade2Price(model_dim=args.model_dim,
+                                 n_head=args.n_head,
+                                 num_layers=args.num_layers,
+                                 src_dim=src.shape[-1],
+                                 tgt_dim=tgt.shape[-1],
+                                 src_len=src.shape[-2],
+                                 tgt_len=tgt.shape[-2]).to(device)
     num_param = 0
     for _, param in model.named_parameters():
         num_param += param.numel()
@@ -52,11 +52,10 @@ def main(args):
         epoch_loss = 0
         for idx, batch in tqdm(enumerate(train_loader)):
             src = batch['src'].to(torch.float32).to(device)
-            out = model(src)
-
             tgt = batch['tgt'].to(torch.float32).to(device)
-            tgt = tgt.view(tgt.shape[0],-1)
-            loss = loss_function(out.mean(dim=1), tgt.mean(dim=1))
+            out = model(src, tgt[:,:-1,:])
+            
+            loss = loss_function(out, tgt[:,1:,:])
             epoch_loss += loss.detach().cpu().item()
             loss.backward()
                     
@@ -71,15 +70,14 @@ def main(args):
     for idx, batch in tqdm(enumerate(test_loader)):
         model.eval()
         src = batch['src'].to(torch.float32).to(device)
-        out = model(src)
-        
         tgt = batch['tgt'].to(torch.float32).to(device)
-        tgt = tgt.view(tgt.shape[0],-1)
-        loss = loss_function(out.mean(dim=1), tgt.mean(dim=1))
+        out = model(src, tgt[:,:-1,:])
+        
+        loss = loss_function(out, tgt[:,1:,:])
         test_loss += loss.detach().cpu().item()
-        correct += ((out.mean(dim=1) * tgt.mean(dim=1))>0).sum().item()
+        correct += ((out*tgt)>0).view(-1).sum().item()
     print(f'Test Average Loss: {test_loss / (idx+1)}')
-    print(f'Test Correct: {correct} out of {args.bs*(idx+1)}')
+    print(f'Test Correct: {correct} out of {args.bs*(tgt.shape[1]-1)*(idx+1)}')
     
     torch.save(model.state_dict(), args.save_dir)
     
