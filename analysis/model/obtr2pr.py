@@ -28,11 +28,11 @@ class OrderbookTrade2Price(nn.Module):
     def __init__(self, model_dim, n_head, num_layers, src_dim, tgt_dim, src_len, tgt_len):
         super().__init__()
         self.src_proj = nn.Linear(src_dim, model_dim)
-        self.src_pos_emb = PositionalEncoding(d_model=src_dim,
+        self.src_pos_emb = PositionalEncoding(d_model=model_dim,
                                               max_len=src_len)
         
         self.tgt_proj = nn.Linear(tgt_dim, model_dim)
-        self.tgt_pos_emb = PositionalEncoding(d_model=tgt_dim,
+        self.tgt_pos_emb = PositionalEncoding(d_model=model_dim,
                                               max_len=tgt_len)
         
         self.transformer = Transformer(d_model=model_dim,
