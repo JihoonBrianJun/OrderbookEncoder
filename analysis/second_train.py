@@ -59,7 +59,7 @@ def main(args):
             out = model(src, tgt[:,:-1,:])
             label = tgt[:,1:,:].squeeze(dim=2)
             
-            loss = loss_function(out, label)
+            loss = loss_function(out[:,-1], label[:,-1])
             epoch_loss += loss.detach().cpu().item()
             loss.backward()
                     
@@ -82,9 +82,9 @@ def main(args):
         out = model(src, tgt[:,:-1,:])
         label = tgt[:,1:,:].squeeze(dim=2)
         
-        loss = loss_function(out, label)
+        loss = loss_function(out[:,-1], label[:,-1])
         test_loss += loss.detach().cpu().item()
-        correct += ((out*label)>0).view(-1).sum().item()
+        correct += ((out[:,-1]*label[:,-1])>0).sum().item()
     print(f'Test Average Loss: {test_loss / (idx+1)}')
     print(f'Test Correct: {correct} out of {args.bs*(tgt.shape[1]-1)*(idx+1)}')
     

@@ -13,14 +13,18 @@ def main(args):
         print(df['mid_price'].diff(periods=args.pred_hop).describe())
         df['gap_mid_price_change'] = df['mid_price'].diff(periods=args.pred_hop) / args.mid_price_change_divisor
         
-        src = np.stack([df.iloc[i:i+args.data_len][['qty_ratio', 'maker_ratio']].to_numpy()
-                        for i in range(0, df.shape[0]-args.data_len-args.pred_len, args.data_hop)], axis=0)
-        
+        # src = np.stack([df.iloc[i:i+args.data_len][['qty_ratio', 'maker_ratio']].to_numpy()
+        #                 for i in range(0, df.shape[0]-args.data_len-args.pred_len, args.data_hop)], axis=0) 
         # tgt = np.stack([df.iloc[i:i+args.pred_len]['gap_mid_price_change'].to_numpy()
         #                 for i in range(args.data_len, df.shape[0]-args.pred_len, args.data_hop)], axis=0)
+        # tgt = np.expand_dims(tgt[:,args.pred_hop-1::args.pred_hop], axis=2)
+        
+        src = np.stack([df.iloc[i:i+args.data_len][['qty_ratio', 'maker_ratio']].to_numpy()
+                        for i in range(0, df.shape[0]-args.data_len-2*args.pred_len, args.data_hop)], axis=0) 
         tgt = np.stack([df.iloc[i:i+args.data_len+args.pred_len]['gap_mid_price_change'].to_numpy()
-                        for i in range(0, df.shape[0]-args.data_len-args.pred_len, args.data_hop)], axis=0)
-        tgt = np.expand_dims(tgt[:,args.pred_hop-1::args.pred_hop], axis=2)
+                        for i in range(args.pred_len, df.shape[0]-args.data_len-args.pred_len, args.data_hop)], axis=0)
+        tgt = np.expand_dims(tgt[:,::args.pred_hop], axis=2)
+        
         
         if all_src is None:
             all_src = src
@@ -44,6 +48,6 @@ if __name__ == '__main__':
     parser.add_argument('--data_hop', type=int, default=20)
     parser.add_argument('--pred_len', type=int, default=10)
     parser.add_argument('--pred_hop', type=int, default=10)
-    parser.add_argument('--mid_price_change_divisor', type=int, default=200)
+    parser.add_argument('--mid_price_change_divisor', type=int, default=70)
     args = parser.parse_args()
     main(args)
