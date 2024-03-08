@@ -98,9 +98,12 @@ def main(args):
     correct = 0
     rec_correct, rec_tgt = 0,0
     prec_correct, prec_tgt = 0,0
+    strong_prec_correct, strong_prec_tgt = 0,0
     for idx, batch in tqdm(enumerate(test_loader)):
         src = batch['src'].to(torch.float32).to(device)
-        tgt = batch['tgt'].to(torch.float32).to(device)
+        tgt = torch.clamp(batch['tgt'],
+                          min=-args.tgt_clip_value,
+                          max=args.tgt_clip_value).to(torch.float32).to(device)
         
         out = model(src, tgt[:,:-1,:])
         label = tgt[:,1:,:].squeeze(dim=2)
@@ -118,12 +121,16 @@ def main(args):
         prec_tgt += (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long).sum().item()
         prec_correct += ((torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
 
+        strong_prec_tgt += ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long)).sum().item()
+        strong_prec_correct += ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
+
         if idx == 0:
             print(f'Out: {out[:,-1,:]}\n Label: {label[:,-1]}')
     print(f'Test Average Loss: {test_loss / (idx+1)}')
     print(f'Test Correct: {correct} out of {args.bs*(tgt.shape[1]-1)*(idx+1)}')
     print(f'Test Recall: {rec_correct} out of {rec_tgt}')
     print(f'Test Precision: {prec_correct} out of {prec_tgt}')
+    print(f'Test Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
     
     
 if __name__ == '__main__':
@@ -137,10 +144,11 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=bool, default=False)
     parser.add_argument('--epoch', type=int, default=1)
     parser.add_argument('--bs', type=int, default=16)
-    parser.add_argument('--lr', type=float, default=1e-5)
+    parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--gamma', type=float, default=1)
     parser.add_argument('--train_ratio', type=float, default=0.9)
     parser.add_argument('--tgt_clip_value', type=float, default=1)
-    parser.add_argument('--value_threshold', type=float, default=1)
+    parser.add_argument('--value_threshold', type=float, default=0.5)
+    parser.add_argument('--strong_threshold', type=float, default=0.9)
     args = parser.parse_args()
     main(args)
