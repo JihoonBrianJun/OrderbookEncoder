@@ -92,45 +92,46 @@ def main(args):
         torch.save(model.state_dict(), args.save_dir)
     
     
-    # model.load_state_dict(torch.load('vanilla.pt'))
-    model.eval()
-    test_loss = 0
-    correct = 0
-    rec_correct, rec_tgt = 0,0
-    prec_correct, prec_tgt = 0,0
-    strong_prec_correct, strong_prec_tgt = 0,0
-    for idx, batch in tqdm(enumerate(test_loader)):
-        src = batch['src'].to(torch.float32).to(device)
-        tgt = torch.clamp(batch['tgt'],
-                          min=-args.tgt_clip_value,
-                          max=args.tgt_clip_value).to(torch.float32).to(device)
-        
-        out = model(src, tgt[:,:-1,:])
-        label = tgt[:,1:,:].squeeze(dim=2)
-        label = 1+(label>=args.value_threshold).to(torch.long)-(label<=-args.value_threshold).to(torch.long)
-        
-        # loss = loss_function(out[:,-1], label[:,-1])
-        loss = loss_function(out[:,-1,:],label[:,-1])
-        test_loss += loss.detach().cpu().item()
-        # correct += ((out[:,-1]*label[:,-1])>0).sum().item()
-        correct += (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).sum().item()
+        if epoch % 10 == 0:
+            # model.load_state_dict(torch.load('vanilla.pt'))
+            model.eval()
+            test_loss = 0
+            correct = 0
+            rec_correct, rec_tgt = 0,0
+            prec_correct, prec_tgt = 0,0
+            strong_prec_correct, strong_prec_tgt = 0,0
+            for idx, batch in tqdm(enumerate(test_loader)):
+                src = batch['src'].to(torch.float32).to(device)
+                tgt = torch.clamp(batch['tgt'],
+                                min=-args.tgt_clip_value,
+                                max=args.tgt_clip_value).to(torch.float32).to(device)
+                
+                out = model(src, tgt[:,:-1,:])
+                label = tgt[:,1:,:].squeeze(dim=2)
+                label = 1+(label>=args.value_threshold).to(torch.long)-(label<=-args.value_threshold).to(torch.long)
+                
+                # loss = loss_function(out[:,-1], label[:,-1])
+                loss = loss_function(out[:,-1,:],label[:,-1])
+                test_loss += loss.detach().cpu().item()
+                # correct += ((out[:,-1]*label[:,-1])>0).sum().item()
+                correct += (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).sum().item()
 
-        rec_tgt += (label[:,-1]!=1).to(torch.long).sum().item()
-        rec_correct += ((label[:,-1]!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
+                rec_tgt += (label[:,-1]!=1).to(torch.long).sum().item()
+                rec_correct += ((label[:,-1]!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
 
-        prec_tgt += (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long).sum().item()
-        prec_correct += ((torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
+                prec_tgt += (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long).sum().item()
+                prec_correct += ((torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
 
-        strong_prec_tgt += ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long)).sum().item()
-        strong_prec_correct += ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
+                strong_prec_tgt += ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long)).sum().item()
+                strong_prec_correct += ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
 
-        if idx == 0:
-            print(f'Out: {out[:,-1,:]}\n Label: {label[:,-1]}')
-    print(f'Test Average Loss: {test_loss / (idx+1)}')
-    print(f'Test Correct: {correct} out of {args.bs*(tgt.shape[1]-1)*(idx+1)}')
-    print(f'Test Recall: {rec_correct} out of {rec_tgt}')
-    print(f'Test Precision: {prec_correct} out of {prec_tgt}')
-    print(f'Test Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
+                if idx == 0:
+                    print(f'Out: {out[:,-1,:]}\n Label: {label[:,-1]}')
+            print(f'Test Average Loss: {test_loss / (idx+1)}')
+            print(f'Test Correct: {correct} out of {args.bs*(tgt.shape[1]-1)*(idx+1)}')
+            print(f'Test Recall: {rec_correct} out of {rec_tgt}')
+            print(f'Test Precision: {prec_correct} out of {prec_tgt}')
+            print(f'Test Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
     
     
 if __name__ == '__main__':

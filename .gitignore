@@ -6,3 +6,4 @@ analysis/data/processed/*
 # analysis/data/train/*
 real_data/*
 analysis/*.pt
+out.txt
