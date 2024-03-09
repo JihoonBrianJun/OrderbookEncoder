@@ -130,10 +130,19 @@ def main(args):
                 strong_prec_tgt = ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long)).sum().item()
                 strong_prec_correct = ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
 
+                prec_tgt_lenient = (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long).sum().item()
+                prec_correct_lenient = ((torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=2-label[:,-1]).to(torch.long)).sum().item()
+
+                strong_prec_tgt_lenient = ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long)).sum().item()
+                strong_prec_correct_lenient = ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=2-label[:,-1]).to(torch.long)).sum().item()
+
+
                 print(f'Loop {loop_idx} Code {market_code} Out: {out[:,-1,:]}\n Label: {label[:,-1]}')
                 print(f'Loop {loop_idx} Code {market_code} Recall: {rec_correct} out of {rec_tgt}')
                 print(f'Loop {loop_idx} Code {market_code} Precision: {prec_correct} out of {prec_tgt}')
                 print(f'Loop {loop_idx} Code {market_code} Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
+                print(f'Loop {loop_idx} Code {market_code} Precision_Lenient: {prec_correct_lenient} out of {prec_tgt_lenient}')
+                print(f'Loop {loop_idx} Code {market_code} Precision_Lenient (Strong): {strong_prec_correct_lenient} out of {strong_prec_tgt_lenient}')
             
             except:
                 pass
