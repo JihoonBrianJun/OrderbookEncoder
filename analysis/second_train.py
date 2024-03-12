@@ -136,8 +136,8 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/train')
-    parser.add_argument('--save_dir', type=str, default='/home/jay/UpbitTrade/analysis/vanilla.pt')
+    parser.add_argument('--data_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/train/second')
+    parser.add_argument('--save_dir', type=str, default='/home/jay/UpbitTrade/analysis/vanilla_second.pt')
     parser.add_argument('--result_dim', type=int, default=3)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)

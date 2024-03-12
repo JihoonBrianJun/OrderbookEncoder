@@ -58,7 +58,9 @@ def main(args):
         agg['qty_ratio'] = agg['qty_ratio'].apply(lambda x: np.log(x))
         agg['maker_ratio'] = agg['maker_ratio'].apply(lambda x: np.log(x)).fillna(method='ffill')
         agg['mid_price_change'] = agg['mid_price'].diff()
-        
+
+        if not os.path.exists(args.final_save_dir):
+            os.makedirs(args.final_save_dir)   
         save_path = os.path.join(args.final_save_dir, f"{date_path.split(args.intermediate_dir+'/')[1]}.csv")
         agg.to_csv(os.path.join(save_path), index=False)
     
@@ -68,6 +70,6 @@ if __name__ == '__main__':
     parser.add_argument('--orderbook_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/orderbook')
     parser.add_argument('--trade_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/trade')
     parser.add_argument('--intermediate_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/processed')
-    parser.add_argument('--final_save_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/combined')
+    parser.add_argument('--final_save_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/combined/second')
     args = parser.parse_args()
     main(args)

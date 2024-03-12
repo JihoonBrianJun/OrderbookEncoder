@@ -33,7 +33,8 @@ def main(args):
             all_src = np.concatenate((all_src, src), axis=0)
             all_tgt = np.concatenate((all_tgt, tgt), axis=0)
 
-
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
     with open(os.path.join(args.save_dir, 'src.npy'), 'wb') as f:
         np.save(f, all_src)
     with open(os.path.join(args.save_dir, 'tgt.npy'), 'wb') as f:
@@ -42,8 +43,8 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/combined')
-    parser.add_argument('--save_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/train')
+    parser.add_argument('--data_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/combined/second')
+    parser.add_argument('--save_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/train/second')
     parser.add_argument('--data_len', type=int, default=120)
     parser.add_argument('--data_hop', type=int, default=20)
     parser.add_argument('--pred_len', type=int, default=10)
