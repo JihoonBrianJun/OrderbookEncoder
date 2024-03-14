@@ -8,7 +8,12 @@ from argparse import ArgumentParser
 from tqdm import tqdm
 
 import torch
-from analysis.model.obtr2pr import OrderbookTrade2Price, AnomalyDetector
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from analysis.model.minute import OrderbookTrade2Price
+from analysis.preprocess.minute_preprocess_all import preprocess_orderbook, preprocess_trade, preprocess_combine
+from analysis.preprocess.minute_train_preprocess import train_preprocess
+
 
 def main(args):
     with open(args.market_codes_path, 'r') as f:
@@ -37,112 +42,90 @@ def main(args):
                 except:
                     pass
             time.sleep(0.4)
-            
-
         
-        all_ob = pd.DataFrame(orderbook_data)
-        all_ob['sec'] = pd.to_datetime(all_ob['timestamp'], unit='ms').dt.floor(freq='S')
-        all_ob.drop(['timestamp'], axis=1, inplace=True)
         
-        all_tr = pd.DataFrame(trade_data)
+        all_ob = pd.DataFrame(orderbook_data).rename(columns={"timestamp": "transaction_time",
+                                                              "bid_price": "best_bid_price",
+                                                              "ask_price": "best_ask_price",
+                                                              "bid_size": "best_bid_qty",
+                                                              "ask_size": "best_ask_qty"})
+        
+        all_tr = pd.DataFrame(trade_data).rename(columns={"trade_price": "price",
+                                                          "trade_volume": "qty"})
+        all_tr["time"] = pd.to_datetime(all_tr["trade_date_utc"] + ' ' + all_tr["trade_time_utc"])
+        all_tr["is_buyer_maker"] = all_tr["ask_bid"].apply(lambda x: True if x=="ASK" else False)
         
         device = torch.device("cpu")
+
+        model = OrderbookTrade2Price(model_dim=args.model_dim,
+                                     n_head=args.n_head,
+                                     num_layers=args.num_layers,
+                                     ob_feature_dim=int(2*(60/args.data_freq)),
+                                     tr_feature_dim=int(2*(60/args.data_freq)*args.price_interval_num),
+                                     volume_feature_dim=1,
+                                     tgt_feature_dim=1,
+                                     data_len=args.data_len,
+                                     ob_importance=args.ob_importance,
+                                     tr_importance=args.tr_importance).to(device)
+        model.load_state_dict(torch.load(args.model_ckpt_path, map_location=device))
         
         for market_code in market_codes:
             try:
                 ob = all_ob[all_ob['code']==market_code]
-                ob.drop(['code'], axis=1, inplace=True)
-                ob.sort_values(by=['sec'], inplace=True)
-                
-                price_gap = np.round((ob['ask_price'] - ob['bid_price']).mode().item(), 6)
-                base_price = ob['bid_price'].iloc[0].item() + (price_gap / 2)
-
-                ob['mid_price'] = ((((ob['bid_price'] + ob['ask_price']) / 2) - base_price) / price_gap).round(6)
-                ob['qty_ratio'] = ob['ask_size'] / ob['bid_size']
-
-                ob = ob.groupby('sec')[['mid_price', 'qty_ratio']].last().reset_index().drop_duplicates()
+                ob.sort_values(by=['timestamp'], inplace=True)
+                ob.drop(['code','timestamp'], axis=1, inplace=True)
+                ob = preprocess_orderbook(args, ob)
                 
                 tr = all_tr[all_tr['market']==market_code].drop_duplicates()
-                tr = tr[['trade_date_utc', 'trade_time_utc', 'trade_price', 'trade_volume', 'ask_bid']]
-                tr['sec'] = pd.to_datetime(tr['trade_date_utc'] + ' ' + tr['trade_time_utc'])
-                tr.drop(['trade_date_utc', 'trade_time_utc'], axis=1, inplace=True)
+                tr, tr_minute = preprocess_trade(args, tr)        
                 
-                tr = tr.groupby(['sec', 'ask_bid'])['trade_volume'].sum().unstack()
-                tr = pd.DataFrame(tr['ASK'] / tr['BID']).rename(columns={0:'maker_ratio'}).reset_index() 
+                agg = preprocess_combine(args, ob, tr, tr_minute)
+                data = train_preprocess(args, agg)
                 
+                data_len_dict, feature_dim_dict = dict(), dict()
+                for ins_idx, ins in enumerate(data):
+                    for key in ins.keys():
+                        ins[key] = np.array(ins[key]).reshape(len(ins[key]),-1)
+                        if ins_idx == 0:
+                            print(f'Each {key} shape: {ins[key].shape}')
+                            data_len_dict[key] = ins[key].shape[0]
+                            feature_dim_dict[key] = ins[key].shape[1]
+                print(f'# of instances: {len(data)}')
                 
-                agg = ob.merge(tr, on=['sec'], how='left')
-                agg['qty_ratio'] = agg['qty_ratio'].apply(lambda x: np.log(x))
-                agg['maker_ratio'] = agg['maker_ratio'].apply(lambda x: np.log(x)).fillna(method='ffill')
-                agg['mid_price_change'] = agg['mid_price'].diff()            
+                dataloader = DataLoader(data, batch_size=len(data), shuffle=True)
+                loss_function = nn.MSELoss()
                 
-                agg = agg.dropna()
-                agg['gap_mid_price_change'] = agg['mid_price'].diff(periods=args.pred_hop) / agg['mid_price'].diff(periods=args.pred_hop).quantile(0.75)
-                # src = np.stack([agg.iloc[i:i+args.data_len][['qty_ratio', 'maker_ratio']].to_numpy()
-                #                 for i in range(0, agg.shape[0]-args.data_len-args.pred_len, args.data_hop)], axis=0)
-                # tgt = np.stack([agg.iloc[i:i+args.pred_len]['gap_mid_price_change'].to_numpy()
-                #                 for i in range(args.data_len, agg.shape[0]-args.pred_len, args.data_hop)], axis=0)
-                # tgt = np.expand_dims(tgt[:,args.pred_hop-1::args.pred_hop], axis=2)
+                model.eval()
+                test_loss = 0
+                correct = 0
+                rec_correct, rec_tgt = 0,0
+                strong_prec_correct, strong_prec_tgt = 0,0
+                for batch in dataloader:
+                    ob = batch['ob'].to(torch.float32).to(device)
+                    tr = batch['tr'].to(torch.float32).to(device)
+                    volume = batch['volume'].to(torch.float32).to(device)
+                    tgt = torch.clamp(batch['tgt']*args.tgt_amplifier,
+                                      min=-args.tgt_clip_value,
+                                      max=args.tgt_clip_value).to(torch.float32).to(device)
+                    
+                    out = model(ob, tr, volume, tgt[:,:-1,:])
+                    label = tgt[:,1:,:].squeeze(dim=2)
+                    
+                    loss = loss_function(out,label)
+                    test_loss += loss.detach().cpu().item()
+                    correct += ((out[:,-1]*label[:,-1])>0).sum().item()
 
-                src = np.stack([agg.iloc[i:i+args.data_len][['qty_ratio', 'maker_ratio']].to_numpy()
-                                for i in range(0, agg.shape[0]-args.data_len-2*args.pred_len, args.data_hop)], axis=0) 
-                tgt = np.stack([agg.iloc[i:i+args.data_len+args.pred_len]['gap_mid_price_change'].to_numpy()
-                                for i in range(args.pred_len, agg.shape[0]-args.data_len-args.pred_len, args.data_hop)], axis=0)
-                tgt = np.expand_dims(tgt[:,::args.pred_hop], axis=2)
+                    rec_tgt += (label[:,-1]>=args.value_threshold).to(torch.long).sum().item()
+                    rec_correct += ((label[:,-1]>=args.value_threshold).to(torch.long) * (out[:,-1]>0).to(torch.long)).sum().item()
 
-                print(f'Loop {loop_idx} Code {market_code} src shape: {src.shape}')
-                print(f'Loop {loop_idx} Code {market_code} tgt shape: {tgt.shape}')
-                
-                # code_path = os.path.join('real_data', market_code)
-                # if not os.path.exists(code_path):
-                #     os.makedirs(code_path)
-                # with open(os.path.join(code_path, 'src.npy'), 'wb') as f:
-                #     np.save(f, src)
-                # with open(os.path.join(code_path, 'tgt.npy'), 'wb') as f:
-                #     np.save(f, tgt)
-                            
-                
-                model = AnomalyDetector(model_dim=args.model_dim,
-                                        n_head=args.n_head,
-                                        num_layers=args.num_layers,
-                                        src_dim=src.shape[-1],
-                                        tgt_dim=tgt.shape[-1],
-                                        src_len=src.shape[-2],
-                                        tgt_len=tgt.shape[-2],
-                                        result_dim=args.result_dim).to(device)
-                model.load_state_dict(torch.load(args.model_ckpt_path, map_location=device))
+                    strong_prec_tgt += (out[:,-1]>=args.strong_threshold).to(torch.long).sum().item()
+                    strong_prec_correct += ((out[:,-1]>=args.strong_threshold).to(torch.long) * (label[:,-1]>0).to(torch.long)).sum().item()
 
-                src = torch.tensor(src).to(torch.float32).to(device)
-                tgt = torch.clamp(torch.tensor(tgt),
-                                  min=-args.tgt_clip_value,
-                                  max=args.tgt_clip_value).to(torch.float32).to(device)
-                
-                out = model(src, tgt[:,:-1,:])
-                label = tgt[:,1:,:].squeeze(dim=2)
-                label = 1+(label>=args.value_threshold).to(torch.long)-(label<=-args.value_threshold).to(torch.long)
-
-                rec_tgt = (label[:,-1]!=1).to(torch.long).sum().item()
-                rec_correct = ((label[:,-1]!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
-
-                prec_tgt = (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long).sum().item()
-                prec_correct = ((torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
-
-                strong_prec_tgt = ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long)).sum().item()
-                strong_prec_correct = ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).to(torch.long)).sum().item()
-
-                prec_tgt_lenient = (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long).sum().item()
-                prec_correct_lenient = ((torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=2-label[:,-1]).to(torch.long)).sum().item()
-
-                strong_prec_tgt_lenient = ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long)).sum().item()
-                strong_prec_correct_lenient = ((torch.max(out[:,-1,:],dim=1).values>=args.strong_threshold).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=1).to(torch.long) * (torch.argmax(out[:,-1,:],dim=1)!=2-label[:,-1]).to(torch.long)).sum().item()
-
-
-                print(f'Loop {loop_idx} Code {market_code} Out: {out[:,-1,:]}\n Label: {label[:,-1]}')
+                print(f'Loop {loop_idx} Code {market_code} Out: {out[:,-1]}\n Label: {label[:,-1]}')
+                print(f'Loop {loop_idx} Code {market_code} Average Loss: {test_loss / (idx+1)}')
+                print(f'Loop {loop_idx} Code {market_code} Correct: {correct} out of {args.bs*(idx+1)}')
                 print(f'Loop {loop_idx} Code {market_code} Recall: {rec_correct} out of {rec_tgt}')
-                print(f'Loop {loop_idx} Code {market_code} Precision: {prec_correct} out of {prec_tgt}')
                 print(f'Loop {loop_idx} Code {market_code} Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
-                print(f'Loop {loop_idx} Code {market_code} Precision_Lenient: {prec_correct_lenient} out of {prec_tgt_lenient}')
-                print(f'Loop {loop_idx} Code {market_code} Precision_Lenient (Strong): {strong_prec_correct_lenient} out of {strong_prec_tgt_lenient}')
             
             except:
                 pass
@@ -151,20 +134,23 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--market_codes_path', type=str, default='./result/top_market_codes.json')
-    parser.add_argument('--model_ckpt_path', type=str, default='analysis/vanilla.pt')
-    parser.add_argument('--loop_rep', type=int, default=1)
-    parser.add_argument('--loop_len', type=int, default=600)
-    parser.add_argument('--data_len', type=int, default=120)
-    parser.add_argument('--data_hop', type=int, default=20)
-    parser.add_argument('--pred_len', type=int, default=10)
-    parser.add_argument('--pred_hop', type=int, default=10)
-    parser.add_argument('--mid_price_change_divisor', type=int, default=1)
-    parser.add_argument('--result_dim', type=int, default=3)
+    parser.add_argument('--model_ckpt_path', type=str, default='analysis/vanilla_minute.pt')
+    parser.add_argument('--loop_rep', type=int, default=3)
+    parser.add_argument('--loop_len', type=int, default=10800)
+    parser.add_argument('--data_len', type=int, default=20)
+    parser.add_argument('--data_hop', type=int, default=5)
+    parser.add_argument('--pred_len', type=int, default=1)
+    parser.add_argument('--data_freq', type=int, default=5)
+    parser.add_argument('--clip_range', type=int, default=2)
+    parser.add_argument('--price_interval_num', type=int, default=21)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
+    parser.add_argument('--tgt_amplifier', type=float, default=10)
     parser.add_argument('--tgt_clip_value', type=float, default=1)
     parser.add_argument('--value_threshold', type=float, default=0.5)
     parser.add_argument('--strong_threshold', type=float, default=0.9)
+    parser.add_argument('--ob_importance', type=float, default=0.4)
+    parser.add_argument('--tr_importance', type=float, default=0.4)
     args = parser.parse_args()
     main(args)

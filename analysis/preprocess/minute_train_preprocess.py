@@ -5,18 +5,11 @@ import pandas as pd
 from tqdm import tqdm
 from argparse import ArgumentParser
 
-def main(args):
-    files = os.listdir(args.data_dir)
-    if not os.path.exists(args.save_dir):
-        os.makedirs(args.save_dir)
-        
-    for file in tqdm(files):
-        df = pd.read_csv(os.path.join(args.data_dir, file))
+def train_preprocess(args, df):
         df = df[df['minute']!=df['minute'].min()].set_index('minute')
         ob = df[['time_floor','orderbook_pos','best_qty_ratio']].drop_duplicates()
         tr = df[['time_floor','trade_price_pos','maker_ratio','price_volume_ratio']]
         minute = df.reset_index()[['minute','minute_volume_change','minute_price_change']].drop_duplicates().set_index('minute')
-        del df
 
         ob_minute = np.array(ob.groupby('minute')[['orderbook_pos','best_qty_ratio']].apply(lambda x: x.transpose().values.tolist()).tolist())
         tr_minute = np.array(tr.groupby('minute')[['maker_ratio','price_volume_ratio']].apply(lambda x: x.transpose().values.tolist()).tolist())
@@ -29,6 +22,18 @@ def main(args):
                          'tr':tr_minute[idx:idx+args.data_len].transpose(0,2,1).tolist(),
                          'volume':minute_data[0][:args.data_len].tolist(),
                          'tgt':minute_data[1].tolist()})
+        
+        return data
+
+
+def main(args):
+    files = os.listdir(args.data_dir)
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
+        
+    for file in tqdm(files):
+        df = pd.read_csv(os.path.join(args.data_dir, file))
+        data = train_preprocess(args, df)
 
         with open(os.path.join(args.save_dir, f'train_{file.split(".csv")[0]}.json'), 'w') as f:
             json.dump(data,f)
