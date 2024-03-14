@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
-from model.obtr2pr import OrderbookTrade2Price, AnomalyDetector
+from model.second import OrderbookTrade2Price, AnomalyDetector
 
 
 def main(args):
@@ -68,6 +68,7 @@ def main(args):
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     
     for epoch in tqdm(range(args.epoch)):
+        model.train()
         epoch_loss = 0
         for idx, batch in tqdm(enumerate(train_loader)):
             src = batch['src'].to(torch.float32).to(device)
@@ -93,7 +94,7 @@ def main(args):
     
     
         if epoch % 10 == 0:
-            # model.load_state_dict(torch.load('vanilla.pt'))
+            # model.load_state_dict(torch.load(args.save_dir))
             model.eval()
             test_loss = 0
             correct = 0
