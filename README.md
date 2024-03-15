@@ -4,8 +4,8 @@ This project aims to apply deep learning (Transformer-based models, in particula
 Model is trained on the public data provided by Binance, and actual trading is executed on the Upbit (largest crypto exchange in Korea), leveraging the pre-trained model.
 
 ## Project Goal
-Correctly and precisely predict the `rate of price increase/decrease after 1 minute`, based on the `orderbook and trade data of previous 20 minutes`.
-<img src="assets/project_overview.png" width="651px" height="150px" title="TrainResult" alt="TrainResult"></img><br/>
+Correctly and precisely predict the `rate of price change after 1 minute`, based on the `orderbook and trade data of previous 20 minutes`.
+<img src="assets/project_overview.png" width="500px" height="600px" title="TrainResult" alt="TrainResult"></img><br/>
 
 ## Preliminary
 Conda environments used for this project can be replicated by the following command.
