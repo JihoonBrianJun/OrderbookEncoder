@@ -3,6 +3,10 @@ This project aims to apply deep learning (Transformer-based models, in particula
 
 Model is trained on the public data provided by Binance, and actual trading is executed on the Upbit (largest crypto exchange in Korea), leveraging the pre-trained model.
 
+## Project Goal
+Correctly and precisely predict the `rate of price increase/decrease after 1 minute`, based on the `orderbook and trade data of previous 20 minutes`.
+<img src="assets/project_overview.png" width="651px" height="150px" title="TrainResult" alt="TrainResult"></img><br/>
+
 ## Preliminary
 Conda environments used for this project can be replicated by the following command.
 ```
@@ -13,7 +17,7 @@ conda activate hoon
 ## Data
 Raw data files can be either downloaded directly from Binance (https://www.binance.com/landing/data), or using the Binance API.
 
-Data products used in this project is `**Book Ticker**`(tick-level updates of the best bid and best ask on an order book) and `**Trades**`(executed transactions updated at tick level).
+Data products used in this project is `Book Ticker`(tick-level updates of the best bid and best ask on an order book) and `Trades`(executed transactions updated at tick level).
 
 This project used Jan/01/2024 ~ Jan/06/2024 data for training, and Jan/07/2024 data for validation.
 
@@ -37,7 +41,7 @@ Train hyperparameters is summarized in the following table.
 |30|16|1e-4|1|
 
 After training, metrics evaluated on validation data were as follows:
-<img src="assets/Screenshot 2024-03-15 at 9.42.12 PM.png" width="651px" height="150px" title="TrainResult" alt="TrainResult"></img><br/>
+<img src="assets/train_result.png" width="651px" height="150px" title="TrainResult" alt="TrainResult"></img><br/>
 
 ## Metrics
 1. Correct Rate
