@@ -45,9 +45,9 @@ After training, metrics evaluated on validation data were as follows:
 
 
 2. Recall
-    * ${# \; of \; correct \; predictions \; for \; cases \; in \; denominator} \over {# \; of \; price \; increase \; greater \; than \; threshold \; (args.value\_threshold)}$
+    * ${Num \; of \; correct \; predictions \; for \; cases \; in \; denominator} \over {Num \; of \; price \; increase \; greater \; than \; threshold \; (args.value\_threshold)}$
 
 
 3. Precision (Strong)
-    * ${# \; of \; price \; increase \; among \; cases \; in \; denominator} \over {# \; of \; model \; prediction \; greater \; than \; threshold \; (args.strong\_threshold)}$
+    * ${Num \; of \; price \; increase \; among \; cases \; in \; denominator} \over {Num \; of \; model \; prediction \; greater \; than \; threshold \; (args.strong\_threshold)}$
 
