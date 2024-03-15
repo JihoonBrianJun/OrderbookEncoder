@@ -5,8 +5,9 @@ Model is trained on the public data provided by Binance (https://www.binance.com
 
 ## Preliminary
 Conda environments used for this project can be replicated by the following command.
-'''
+<pre>
+<code> python3
 conda env create -f requirements.yaml
 conda activate hoon
-'''
-
+</code>
+</pre>
