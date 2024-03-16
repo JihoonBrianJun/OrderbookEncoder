@@ -95,7 +95,8 @@ def main(args):
                             feature_dim_dict[key] = ins[key].shape[1]
                 print(f'# of instances: {len(data)}')
                 
-                dataloader = DataLoader(data, batch_size=len(data), shuffle=True)
+                bs = min(len(data),args.bs)
+                dataloader = DataLoader(data, batch_size=bs, shuffle=True)
                 loss_function = nn.MSELoss()
                 
                 model.eval()
@@ -103,7 +104,7 @@ def main(args):
                 correct = 0
                 rec_correct, rec_tgt = 0,0
                 strong_prec_correct, strong_prec_tgt = 0,0
-                for batch in dataloader:
+                for idx, batch in enumerate(dataloader):
                     ob = batch['ob'].to(torch.float32).to(device)
                     tr = batch['tr'].to(torch.float32).to(device)
                     volume = batch['volume'].to(torch.float32).to(device)
@@ -126,7 +127,7 @@ def main(args):
 
                 print(f'Loop {loop_idx} Code {market_code} Out: {out[:,-1]}\n Label: {label[:,-1]}')
                 print(f'Loop {loop_idx} Code {market_code} Average Loss: {test_loss / (idx+1)}')
-                print(f'Loop {loop_idx} Code {market_code} Correct: {correct} out of {args.bs*(idx+1)}')
+                print(f'Loop {loop_idx} Code {market_code} Correct: {correct} out of {bs*(idx+1)}')
                 print(f'Loop {loop_idx} Code {market_code} Recall: {rec_correct} out of {rec_tgt}')
                 print(f'Loop {loop_idx} Code {market_code} Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
             
@@ -151,6 +152,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--gpu', type=bool, default=False)
+    parser.add_argument('--bs', type=int, default=256)
     parser.add_argument('--tgt_amplifier', type=float, default=10)
     parser.add_argument('--tgt_clip_value', type=float, default=1)
     parser.add_argument('--value_threshold', type=float, default=0.5)
