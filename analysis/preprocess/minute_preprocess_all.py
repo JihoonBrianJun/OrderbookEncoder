@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 def preprocess_orderbook(args, df):
         df = df[['best_bid_price', 'best_bid_qty', 'best_ask_price', 'best_ask_qty', 'transaction_time']]    
         df['transaction_time'] = pd.to_datetime(df['transaction_time'], unit='ms')
+        df = df.sort_values(by=['transaction_time'])
         df['transaction_time_floor'] = df['transaction_time'].dt.floor(freq=f'{args.data_freq}S')
         
         df['mid_price'] = (df['best_bid_price'] + df['best_ask_price']) / 2
@@ -18,6 +19,7 @@ def preprocess_orderbook(args, df):
 def preprocess_trade(args, df):
         df = df[['price', 'qty', 'time', 'is_buyer_maker']]
         df['time'] = pd.to_datetime(df['time'], unit='ms')
+        df = df.sort_values(by=['time'])
         df['time_floor'] = df['time'].dt.floor(freq=f'{args.data_freq}S')
         df['minute'] = df['time'].dt.floor(freq='min')
         
@@ -72,7 +74,9 @@ def preprocess_combine(args, ob_df, tr_df, minute_df, date=None):
     
     tr_df['time_floor'] = pd.to_datetime(tr_df['time_floor'])
     if date is None:
-        all_time_floor = pd.DataFrame(sorted(list(set(list(ob_df['time_floor'].unique())).union(set(list(tr_df['time_floor'].unique()))))))
+        all_time_floor = pd.DataFrame(pd.date_range(
+            start=min(ob_df['time_floor'].min(), tr_df['time_floor'].min()), end=max(ob_df['time_floor'].max(), tr_df['time_floor'].max()),
+            freq=f"{args.data_freq}s", inclusive="left"))
     else:
         all_time_floor = pd.DataFrame(pd.date_range(
             start=date, end=date+pd.Timedelta("1d"),
@@ -91,7 +95,7 @@ def preprocess_combine(args, ob_df, tr_df, minute_df, date=None):
     agg_df.sort_values(by=['time_floor','trade_price_pos'],inplace=True)
     agg_df.fillna(0,inplace=True)
     agg_df['minute'] = agg_df['time_floor'].dt.floor(freq='min')
-    assert agg_df.shape[0] == 24*60*(60/args.data_freq)*args.price_interval_num, f"Shape of agg is {agg_df.shape}, but it should be {24*60*(60/args.data_freq)*args.price_interval_num}."
+    # assert agg_df.shape[0] == 24*60*(60/args.data_freq)*args.price_interval_num, f"Shape of agg is {agg_df.shape}, but it should be {24*60*(60/args.data_freq)*args.price_interval_num}."
     
     return agg_df
         

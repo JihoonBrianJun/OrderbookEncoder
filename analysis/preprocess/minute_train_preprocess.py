@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 
 def train_preprocess(args, df):
         df = df[df['minute']!=df['minute'].min()].set_index('minute')
+        df = df.loc[df.index.min()+pd.Timedelta("1min"):df.index.max()-pd.Timedelta("1min")]
         ob = df[['time_floor','orderbook_pos','best_qty_ratio']].drop_duplicates()
         tr = df[['time_floor','trade_price_pos','maker_ratio','price_volume_ratio']]
         minute = df.reset_index()[['minute','minute_volume_change','minute_price_change']].drop_duplicates().set_index('minute')

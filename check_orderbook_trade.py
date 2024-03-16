@@ -19,6 +19,23 @@ def main(args):
     with open(args.market_codes_path, 'r') as f:
         market_codes = json.load(f)
     
+    if args.gpu:
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
+    model = OrderbookTrade2Price(model_dim=args.model_dim,
+                                 n_head=args.n_head,
+                                 num_layers=args.num_layers,
+                                 ob_feature_dim=int(2*(60/args.data_freq)),
+                                 tr_feature_dim=int(2*(60/args.data_freq)*args.price_interval_num),
+                                 volume_feature_dim=1,
+                                 tgt_feature_dim=1,
+                                 data_len=args.data_len,
+                                 ob_importance=args.ob_importance,
+                                 tr_importance=args.tr_importance).to(device)
+    model.load_state_dict(torch.load(args.model_ckpt_path, map_location=device))
+
     for loop_idx in tqdm(range(args.loop_rep)):
         orderbook_data = []
         trade_data = []
@@ -55,28 +72,14 @@ def main(args):
         all_tr["time"] = pd.to_datetime(all_tr["trade_date_utc"] + ' ' + all_tr["trade_time_utc"])
         all_tr["is_buyer_maker"] = all_tr["ask_bid"].apply(lambda x: True if x=="ASK" else False)
         
-        device = torch.device("cpu")
-
-        model = OrderbookTrade2Price(model_dim=args.model_dim,
-                                     n_head=args.n_head,
-                                     num_layers=args.num_layers,
-                                     ob_feature_dim=int(2*(60/args.data_freq)),
-                                     tr_feature_dim=int(2*(60/args.data_freq)*args.price_interval_num),
-                                     volume_feature_dim=1,
-                                     tgt_feature_dim=1,
-                                     data_len=args.data_len,
-                                     ob_importance=args.ob_importance,
-                                     tr_importance=args.tr_importance).to(device)
-        model.load_state_dict(torch.load(args.model_ckpt_path, map_location=device))
-        
         for market_code in market_codes:
             try:
                 ob = all_ob[all_ob['code']==market_code]
-                ob.sort_values(by=['timestamp'], inplace=True)
-                ob.drop(['code','timestamp'], axis=1, inplace=True)
+                print(f'Loop {loop_idx} Code {market_code} Orderbook Data Len: {ob.shape[0]}')
                 ob = preprocess_orderbook(args, ob)
                 
                 tr = all_tr[all_tr['market']==market_code].drop_duplicates()
+                print(f'Loop {loop_idx} Code {market_code} Trade Data Len: {tr.shape[0]}')
                 tr, tr_minute = preprocess_trade(args, tr)        
                 
                 agg = preprocess_combine(args, ob, tr, tr_minute)
@@ -128,6 +131,7 @@ def main(args):
                 print(f'Loop {loop_idx} Code {market_code} Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
             
             except:
+                print(f'Loop {loop_idx} Code {market_code} Evaluation failed!')
                 pass
             
 
@@ -146,6 +150,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
+    parser.add_argument('--gpu', type=bool, default=False)
     parser.add_argument('--tgt_amplifier', type=float, default=10)
     parser.add_argument('--tgt_clip_value', type=float, default=1)
     parser.add_argument('--value_threshold', type=float, default=0.5)

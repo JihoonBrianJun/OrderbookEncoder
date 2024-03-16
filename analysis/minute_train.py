@@ -38,7 +38,8 @@ def main(args):
         
     
     train_loader = DataLoader(train_data, batch_size=args.bs, shuffle=True)
-    test_loader = DataLoader(test_data, batch_size=args.bs, shuffle=True)
+    test_bs = min(len(test_data),args.bs)
+    test_loader = DataLoader(test_data, batch_size=test_bs, shuffle=True)
     
     if args.gpu:
         device = torch.device("cuda")
@@ -121,15 +122,15 @@ def main(args):
                 if idx == 0:
                     print(f'Out: {out[:,-1]}\n Label: {label[:,-1]}')
             print(f'Test Average Loss: {test_loss / (idx+1)}')
-            print(f'Test Correct: {correct} out of {args.bs*(idx+1)}')
+            print(f'Test Correct: {correct} out of {test_bs*(idx+1)}')
             print(f'Test Recall: {rec_correct} out of {rec_tgt}')
             print(f'Test Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
     
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/train/minute')
-    parser.add_argument('--save_dir', type=str, default='/home/jay/UpbitTrade/analysis/vanilla_minute.pt')
+    parser.add_argument('--data_dir', type=str, default='/home/jihoon/UpbitTrade/analysis/data/train/minute')
+    parser.add_argument('--save_dir', type=str, default='/home/jihoon/UpbitTrade/analysis/vanilla_minute.pt')
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
