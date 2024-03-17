@@ -23,7 +23,7 @@ conda activate hoon
 
 Raw data files can be either downloaded directly from Binance (https://www.binance.com/landing/data), or using the Binance API.
 
-Data products used in this project is `Book Ticker`(tick-level updates of the best bid and best ask on an order book) and `Trades`(executed transactions updated at tick level).
+Data products used in this project are `Book Ticker`(tick-level updates of the best bid and best ask on an order book) and `Trades`(executed transactions updated at tick level).
 
 This project used Jan/01/2024 ~ Jan/06/2024 data for training, and Jan/07/2024 data for validation.
 
@@ -38,21 +38,23 @@ gdown {to-be-updated}
 * Get the snapshot of `best bid & ask price and quantity` every 5 seconds (12 snapshots per minute).
 * For each snapshot, we normalize the price and quantity values in the following way:
     * Price: ${Price - {Minute \ Open \ Price}} \over {|{Minute \ Close \ Price} - {Minute \ Open \ Price}|}$
-        * Clipped to lie in the range of -2 to 2. (Clipping criterion can be changed)
+        * Clipped to lie in the range of -2 to 2. (Clipping criterion is subject to change)
     * Quantity: ${Best \ Ask \ Quantity} \over {{Best \ Ask \ Quantity} + {Best \ Bid \ Quantity}}$
-* Each snapshot is represented as 2-dimensional (Price & Quantity in the above way) data, and it sums up to $12*2=24$-dimensional data per each minute.
+* Each snapshot is represented as 2-dimensional (Price & Quantity in the above way) data, and it sums up to $12 \times 2=24$-dimensional data per each minute.
 
 ### Trade Data
 
 * Prices recorded in the trade data are first normalized in the following way (similar to the orderbook data):
     * ${Price - {Minute \ Open \ Price}} \over {|{Minute \ Close \ Price} - {Minute \ Open \ Price}|}$
-        * Clipped to lie in the range of -2 to 2. (Clipping criterion can be changed)
-* For each 5 seconds, get the `Maker Ratio` per each (normalized) price interval.
-    * Maker Ratio: ${Total \ Trade \ Quantity \ whose \ maker \ is \ buyer} \over {Total \ Trade \ Quantity}$
+        * Clipped to lie in the range of -2 to 2. (Clipping criterion is subject to change)
+* For each 5 seconds, get the `Maker Ratio` and `Quantity Ratio` for each (normalized) price interval.
+    * Maker Ratio: ${Total \ Quantity \ of \ trades \ whose \ maker \ is \ buyer} \over {Total \ Trade \ Quantity}$
+        * Remind that if buyer is the maker, then the trade is triggered by the sell order.
+    * Quantity Ratio: ${Total \ Trade \ Quantity \ within \ the \ price \ interval} \over {Total \ Trade \ Quantity \ of \ all \ price \ intervals}$
     * Number of price intervals is pre-determined. In this project, we set it to be 21, but one can change this value at their convenience.
-    * In case of 21 price intervals, Maker Ratio is computed for trades whose price are in between -2.0 ~ -1.8, -1.8 ~ -1.6, $\cdots$, 1.6 ~ 1.8, 1.8 ~ 2.0, respectively.
-* We use `Maker Ratio of each price interval`, computed every 5 seconds, as the feature extracted from Trade data. Since we get 21-dimensional data each 5 seconds, it adds up to $12*21=252$-dimensional data per each minute.
-* In addition to Maker Ratio, we further compute the `minute-interval log difference of total Trade Quantity` (not considering price intervals this time) each minute. Clearly, this is 1-dimensional data per each minute.
+    * In case of 21 price intervals, Maker Ratio is computed for trades whose price are in between -2.0 ~ -1.8, -1.8 ~ -1.6, $\cdots$, 1.6 ~ 1.8, 1.8 ~ 2.0, respectively. Same applies to Quantity Ratio.
+* We use `Maker Ratio and Quantity Ratio of each price interval`, computed every 5 seconds, as the feature extracted from Trade data. Since we get 21-dimensional Maker Ratio and 21-dimensional Quantity Ratio data each 5 seconds, it adds up to $12 \times 42=504$-dimensional data per each minute.
+* In addition to Maker Ratio and Quantity Ratio, we further compute the `minute-interval log difference of total Trade Quantity` (not considering price intervals this time) each minute. Clearly, this is 1-dimensional data per each minute.
 
 ### Target Data
 
