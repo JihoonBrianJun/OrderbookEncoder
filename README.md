@@ -7,7 +7,7 @@ Model is trained on the public data provided by Binance, and actual trading is e
 Correctly and precisely predict the `rate of price change after 1 minute`, based on the `orderbook and trade data of previous 20 minutes`.
 
 
-<img src="assets/project_overview.png" width="500px" height="600px" title="TrainResult" alt="TrainResult"></img><br/>
+<img src="assets/project_overview.png" width="577px" height="300px" title="TrainResult" alt="TrainResult"></img><br/>
 
 ## Preliminary
 Conda environments used for this project can be replicated by the following command.
