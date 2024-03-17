@@ -1,4 +1,4 @@
-# UpbitTrade
+# OrderbookEncoder
 This project aims to apply deep learning (Transformer-based models, in particular) methodologies for the real-time trading on cryptocurrency market.
 
 Model is trained on the public data provided by Binance, and actual trading is executed on the Upbit (largest crypto exchange in Korea), leveraging the pre-trained model.
@@ -7,7 +7,7 @@ Model is trained on the public data provided by Binance, and actual trading is e
 Correctly and precisely predict the `rate of price change after 1 minute`, based on the `orderbook and trade data of previous 20 minutes`.
 
 
-<img src="assets/project_overview.png" width="577px" height="300px" title="TrainResult" alt="TrainResult"></img><br/>
+<img src="assets/project_overview.png" width="577px" height="300px" title="ProjectOverview" alt="ProjectOverview"></img><br/>
 
 ## Preliminary
 Conda environments used for this project can be replicated by the following command.
@@ -29,7 +29,7 @@ gdown {to-be-updated}
 ```
 
 ## Data Preprocessing Pipeline
-1. Orderbook Data
+### Orderbook Data
 * Get the snapshot of `best bid & ask price and quantity` every 5 seconds (12 snapshots per minute).
 * For each snapshot, we normalize the price and quantity values in the following way:
     * Price: ${Price - {Minute \ Open \ Price}} \over {|{Minute \ Close \ Price} - {Minute \ Open \ Price}|}$
@@ -37,7 +37,7 @@ gdown {to-be-updated}
     * Quantity: ${Best \ Ask \ Quantity} \over {{Best \ Ask \ Quantity} + {Best \ Bid \ Quantity}}$
 * Each snapshot is represented as 2-dimensional (Price & Quantity in the above way) data, and it sums up to $12*2=24$-dimensional data per each minute.
 
-2. Trade Data
+### Trade Data
 * Prices recorded in the trade data are first normalized in the following way (similar to the orderbook data):
     * ${Price - {Minute \ Open \ Price}} \over {|{Minute \ Close \ Price} - {Minute \ Open \ Price}|}$
         * Clipped to lie in the range of -2 to 2. (Clipping criterion can be changed)
@@ -48,7 +48,7 @@ gdown {to-be-updated}
 * We use `Maker Ratio of each price interval`, computed every 5 seconds, as the feature extracted from Trade data. Since we get 21-dimensional data each 5 seconds, it adds up to $12*21=252$-dimensional data per each minute.
 * In addition to Maker Ratio, we further compute the `minute-interval log difference of total Trade Quantity` (not considering price intervals this time) each minute. Clearly, this is 1-dimensional data per each minute.
 
-3. Target Data
+### Target Data
 * `Rate of Price change` per each minute
     * Since these values tend to be small typically, we multiplied each values by 10 to scale them up.
         * Model will be trained to predict these multiplied values, hence one should divide model outputs by 10 to obtain the well-scaled predictions.
@@ -104,6 +104,8 @@ Model performance was further checked based on real-time orderbook and trade dat
 |KRW-TRX|Code Error|-|-|-|
 |KRW-LINK|Code Error|-|-|-|
 |KRW-DOT|0.4794|23 out of 36|23 out of 36|0 out of 0|
+
+<img src="assets/eval_result.png" width="640px" height="400px" title="EvalResult" alt="EvalResult"></img><br/>
 
 
 ### Experiment 2
