@@ -24,8 +24,8 @@ def preprocess_trade(args, df):
         df['minute'] = df['time'].dt.floor(freq='min')
         
         df.sort_values(by=['time_floor'], inplace=True)
-        interval_volume = pd.DataFrame(df.groupby(['time_floor'])['qty'].sum()).reset_index().rename(
-            columns={'qty': 'interval_volume'})
+        time_interval_volume = pd.DataFrame(df.groupby(['time_floor'])['qty'].sum()).reset_index().rename(
+            columns={'qty': 'time_interval_volume'})
         
         df.sort_values(by=['time'], inplace=True)
         open = pd.DataFrame(df.groupby(['minute'])['price'].first()).reset_index().rename(
@@ -55,9 +55,9 @@ def preprocess_trade(args, df):
         df['maker_ratio'] = df[True] / df['price_volume']
         df.drop([True,False], axis=1, inplace=True)
         
-        df = df.merge(interval_volume, on=['time_floor'], how='left')
-        df['price_volume_ratio'] = df['price_volume'] / df['interval_volume']
-        df.drop(['price_volume','interval_volume'],axis=1,inplace=True)
+        df = df.merge(time_interval_volume, on=['time_floor'], how='left')
+        df['price_volume_ratio'] = df['price_volume'] / df['time_interval_volume']
+        df.drop(['price_volume','time_interval_volume'],axis=1,inplace=True)
         
         return df, df_minute
 
