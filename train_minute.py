@@ -92,7 +92,7 @@ def main(args):
                 else:
                     out = model(ob, tr, volume, out.unsqueeze(dim=2))
                 label = tgt[:,step+1:step+1+data_len,:].squeeze(dim=2)
-                loss += loss_function(out,label)
+                loss += step * loss_function(out,label)
             
             epoch_loss += loss.detach().cpu().item() / pred_len
             loss.backward()
@@ -119,14 +119,14 @@ def main(args):
                                   min=-args.tgt_clip_value,
                                   max=args.tgt_clip_value).to(torch.float32).to(device)
                 
+                loss = 0
                 for step in range(pred_len):
-                    label = tgt[:,step+1:step+1+data_len,:].squeeze(dim=2)
                     if step == 0:
                         out = model(ob, tr, volume, tgt[:,:-pred_len,:])
-                        loss = loss_function(out,label)
                     else:
                         out = model(ob, tr, volume, out.unsqueeze(dim=2))
-                        loss += loss_function(out,label)
+                    label = tgt[:,step+1:step+1+data_len,:].squeeze(dim=2)
+                    loss += step * loss_function(out,label)
                 
                 test_loss += loss.detach().cpu().item() / pred_len
                 correct += ((out[:,-1]*label[:,-1])>0).sum().item()
