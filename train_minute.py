@@ -14,6 +14,10 @@ from model.minute import OrderbookTrade2Price
 
 def main(args):
     data_dir = f'{args.data_dir}_{args.pred_len}'
+    save_dir = f'{args.save_dir}_{args.pred_len}.pt'
+    if not os.path.exists(save_dir.split('/')[0]):
+        os.makedirs(save_dir.split('/')[0])
+    
     data_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir)]
     train_data, test_data = [], []
     data_len_dict, feature_dim_dict = dict(), dict()
@@ -100,8 +104,8 @@ def main(args):
         scheduler.step()    
     
         if epoch % 10 == 0:
-            torch.save(model.state_dict(), args.save_dir)
-            # model.load_state_dict(torch.load(args.save_dir))
+            torch.save(model.state_dict(), save_dir)
+            # model.load_state_dict(torch.load(save_dir))
             model.eval()
             test_loss = 0
             correct = 0
@@ -143,7 +147,7 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/train/minute')
-    parser.add_argument('--save_dir', type=str, default='ckpt/vanilla_minute.pt')
+    parser.add_argument('--save_dir', type=str, default='ckpt/vanilla_minute')
     parser.add_argument('--pred_len', type=int, default=5)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)

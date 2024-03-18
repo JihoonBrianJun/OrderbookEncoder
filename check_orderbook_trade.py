@@ -34,7 +34,7 @@ def main(args):
                                  data_len=args.data_len,
                                  ob_importance=args.ob_importance,
                                  tr_importance=args.tr_importance).to(device)
-    model.load_state_dict(torch.load(args.model_ckpt_path, map_location=device))
+    model.load_state_dict(torch.load(f'{args.model_ckpt_path}_{args.pred_len}.pt', map_location=device))
 
     for loop_idx in tqdm(range(args.loop_rep)):
         orderbook_data = []
@@ -139,7 +139,7 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--market_codes_path', type=str, default='./result/top_market_codes.json')
-    parser.add_argument('--model_ckpt_path', type=str, default='analysis/vanilla_minute.pt')
+    parser.add_argument('--model_ckpt_path', type=str, default='analysis/vanilla_minute')
     parser.add_argument('--loop_rep', type=int, default=3)
     parser.add_argument('--loop_len', type=int, default=10800)
     parser.add_argument('--data_len', type=int, default=20)
