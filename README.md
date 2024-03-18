@@ -19,10 +19,9 @@ git clone https://github.com/JihoonBrianJun/OrderbookEncoder.git
 cd OrderbookEncoder
 ```
 
-Conda environments used for this project can be replicated by the following command.
+Python packages used for this project can be replicated by the following command.
 ```
-conda env create -f requirements.yaml
-conda activate hoon
+pip install -r requirements.txt
 ```
 
 ## Data
