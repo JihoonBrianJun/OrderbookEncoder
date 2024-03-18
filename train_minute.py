@@ -13,7 +13,8 @@ from model.minute import OrderbookTrade2Price
 
 
 def main(args):
-    data_files = [os.path.join(args.data_dir, file) for file in os.listdir(args.data_dir)]
+    data_dir = f'{args.data_dir}_{args.pred_len}'
+    data_files = [os.path.join(args.data_dir, file) for file in os.listdir(data_dir)]
     train_data, test_data = [], []
     data_len_dict, feature_dim_dict = dict(), dict()
     print("Loading data files..")
