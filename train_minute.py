@@ -14,7 +14,7 @@ from model.minute import OrderbookTrade2Price
 
 def main(args):
     data_dir = f'{args.data_dir}_{args.pred_len}'
-    data_files = [os.path.join(args.data_dir, file) for file in os.listdir(data_dir)]
+    data_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir)]
     train_data, test_data = [], []
     data_len_dict, feature_dim_dict = dict(), dict()
     print("Loading data files..")
@@ -33,6 +33,9 @@ def main(args):
         else:
             test_data.extend(data)
     del data
+    data_len = data_len_dict['ob']
+    pred_len = data_len_dict['tgt'] - data_len_dict['ob']
+    
     print("Data files loading completed!")
     print(f'# of train instances: {len(train_data)}')
     print(f'# of test instances: {len(test_data)}')
@@ -55,7 +58,6 @@ def main(args):
                                  volume_feature_dim=feature_dim_dict['volume'],
                                  tgt_feature_dim=feature_dim_dict['tgt'],
                                  data_len=data_len_dict['ob'],
-                                #  pred_len=data_len_dict['ob']-data_len_dict['tgt'],
                                  ob_importance=args.ob_importance,
                                  tr_importance=args.tr_importance).to(device)
 
@@ -80,15 +82,15 @@ def main(args):
                               max=args.tgt_clip_value).to(torch.float32).to(device)
             
             loss = 0
-            for step in range(args.pred_len):
+            for step in range(pred_len):
                 if step == 0:
-                    out = model(ob, tr, volume, tgt[:,:-args.pred_len,:])
+                    out = model(ob, tr, volume, tgt[:,:-pred_len,:])
                 else:
-                    out = model(ob, tr, volume, out.unsqueeze())
-                label = tgt[:,step+1:,:].squeeze(dim=2)
+                    out = model(ob, tr, volume, out.unsqueeze(dim=2))
+                label = tgt[:,step+1:step+1+data_len,:].squeeze(dim=2)
                 loss += loss_function(out,label)
             
-            epoch_loss += loss.detach().cpu().item() / args.pred_len
+            epoch_loss += loss.detach().cpu().item() / pred_len
             loss.backward()
                     
             optimizer.step()
@@ -113,16 +115,16 @@ def main(args):
                                   min=-args.tgt_clip_value,
                                   max=args.tgt_clip_value).to(torch.float32).to(device)
                 
-                loss = 0
-                for step in range(args.pred_len):
+                for step in range(pred_len):
+                    label = tgt[:,step+1:step+1+data_len,:].squeeze(dim=2)
                     if step == 0:
-                        out = model(ob, tr, volume, tgt[:,:-args.pred_len,:])
+                        out = model(ob, tr, volume, tgt[:,:-pred_len,:])
+                        loss = loss_function(out,label)
                     else:
-                        out = model(ob, tr, volume, out.unsqueeze())
-                    label = tgt[:,step+1:,:].squeeze(dim=2)
-                    loss += loss_function(out,label)
+                        out = model(ob, tr, volume, out.unsqueeze(dim=2))
+                        loss += loss_function(out,label)
                 
-                test_loss += loss.detach().cpu().item() / args.pred_len
+                test_loss += loss.detach().cpu().item() / pred_len
                 correct += ((out[:,-1]*label[:,-1])>0).sum().item()
 
                 rec_tgt += (label[:,-1]>=args.value_threshold).to(torch.long).sum().item()
@@ -142,7 +144,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/train/minute')
     parser.add_argument('--save_dir', type=str, default='ckpt/vanilla_minute.pt')
-    parser.add_argument('--pred_len', type=int, default=1)
+    parser.add_argument('--pred_len', type=int, default=5)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
