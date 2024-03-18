@@ -78,11 +78,16 @@ def main(args):
                               min=-args.tgt_clip_value, 
                               max=args.tgt_clip_value).to(torch.float32).to(device)
             
-            out = model(ob, tr, volume, tgt[:,:-1,:])
-            label = tgt[:,1:,:].squeeze(dim=2)
+            loss = 0
+            for step in range(args.pred_len):
+                if step == 0:
+                    out = model(ob, tr, volume, tgt[:,:-args.pred_len,:])
+                else:
+                    out = model(ob, tr, volume, out.unsqueeze())
+                label = tgt[:,step+1:,:].squeeze(dim=2)
+                loss += loss_function(out,label)
             
-            loss = loss_function(out,label)
-            epoch_loss += loss.detach().cpu().item()
+            epoch_loss += loss.detach().cpu().item() / args.pred_len
             loss.backward()
                     
             optimizer.step()
@@ -107,11 +112,16 @@ def main(args):
                                   min=-args.tgt_clip_value,
                                   max=args.tgt_clip_value).to(torch.float32).to(device)
                 
-                out = model(ob, tr, volume, tgt[:,:-1,:])
-                label = tgt[:,1:,:].squeeze(dim=2)
+                loss = 0
+                for step in range(args.pred_len):
+                    if step == 0:
+                        out = model(ob, tr, volume, tgt[:,:-args.pred_len,:])
+                    else:
+                        out = model(ob, tr, volume, out.unsqueeze())
+                    label = tgt[:,step+1:,:].squeeze(dim=2)
+                    loss += loss_function(out,label)
                 
-                loss = loss_function(out,label)
-                test_loss += loss.detach().cpu().item()
+                test_loss += loss.detach().cpu().item() / args.pred_len
                 correct += ((out[:,-1]*label[:,-1])>0).sum().item()
 
                 rec_tgt += (label[:,-1]>=args.value_threshold).to(torch.long).sum().item()
@@ -129,8 +139,9 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='/home/jihoon/UpbitTrade/analysis/data/train/minute')
-    parser.add_argument('--save_dir', type=str, default='/home/jihoon/UpbitTrade/analysis/vanilla_minute.pt')
+    parser.add_argument('--data_dir', type=str, default='../data/train/minute')
+    parser.add_argument('--save_dir', type=str, default='../ckpt/vanilla_minute.pt')
+    parser.add_argument('--pred_len', type=int, default=1)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
