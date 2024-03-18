@@ -33,6 +33,14 @@ gdown {to-be-updated}
 ```
 
 ## Data Preprocessing Pipeline
+
+You can run the data preprocessing using the following command:
+```
+cd preprocess
+python3 minute_preprocess_all.py
+python3 minute_train_preprocess.py
+```
+
 ### Orderbook Data
 
 * Get the snapshot of `best bid & ask price and quantity` every 5 seconds (12 snapshots per minute).
@@ -64,6 +72,11 @@ gdown {to-be-updated}
 
 
 ## Train result
+
+You can train the model using the following command:
+```
+python3 train_minute.py --gpu True
+```
 
 Model configurations are shown in the table below.
 
