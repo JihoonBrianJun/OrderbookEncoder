@@ -1,9 +1,9 @@
 config/*
 result/*
-analysis/data/orderbook/*
-analysis/data/trade/*
-analysis/data/processed/*
-# analysis/data/train/*
+data/orderbook/*
+data/trade/*
+data/processed/*
+# data/train/*
 real_data/*
-analysis/*.pt
+ckpt/*.pt
 out.txt
