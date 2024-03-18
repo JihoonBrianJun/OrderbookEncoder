@@ -67,9 +67,9 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--orderbook_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/orderbook')
-    parser.add_argument('--trade_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/trade')
-    parser.add_argument('--intermediate_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/processed')
-    parser.add_argument('--final_save_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/combined/second')
+    parser.add_argument('--orderbook_dir', type=str, default='../data/orderbook')
+    parser.add_argument('--trade_dir', type=str, default='../data/trade')
+    parser.add_argument('--intermediate_dir', type=str, default='../data/processed')
+    parser.add_argument('--final_save_dir', type=str, default='../data/combined/second')
     args = parser.parse_args()
     main(args)

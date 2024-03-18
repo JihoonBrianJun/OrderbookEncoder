@@ -40,7 +40,7 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--orderbook_path', type=str, default='/home/jay/UpbitTrade/analysis/data/orderbook/BTCUSDT-bookTicker-2024-01-01.csv')
-    parser.add_argument('--trade_path', type=str, default='/home/jay/UpbitTrade/analysis/data/trade/BTCUSDT-trades-2024-01-01.csv')
+    parser.add_argument('--orderbook_path', type=str, default='../data/orderbook/BTCUSDT-bookTicker-2024-01-01.csv')
+    parser.add_argument('--trade_path', type=str, default='../data/trade/BTCUSDT-trades-2024-01-01.csv')
     args = parser.parse_args()
     main(args)
