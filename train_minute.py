@@ -117,7 +117,10 @@ def main(args):
                                   max=args.tgt_clip_value).to(torch.float32).to(device)
                 
                 for step in range(pred_len):
-                    out = model(ob, tr, volume, tgt[:,:data_len+step,:])
+                    if step == 0:
+                        out = model(ob, tr, volume, tgt[:,:data_len,:])
+                    else:
+                        out = model(ob, tr, volume, torch.cat((tgt[:,:data_len,:], out[:,-step:].unsqueeze(dim=2)),dim=1))
 
                 label = tgt[:,1:,:].squeeze(dim=2)                    
                 loss = loss_function(out,label)
