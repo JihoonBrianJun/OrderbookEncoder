@@ -101,11 +101,8 @@ def preprocess_combine(args, ob_df, tr_df, minute_df, date=None):
         
 
 def main(args):
-    orderbook_paths = [os.path.join(args.orderbook_dir, path) if not path.startswith('.') else None
-                       for path in os.listdir(args.orderbook_dir)]
+    orderbook_paths = [os.path.join(args.orderbook_dir, path) for path in os.listdir(args.orderbook_dir)]
     for orderbook_path in tqdm(orderbook_paths):
-        if orderbook_path is None:
-            continue
         ob = pd.read_csv(orderbook_path)
         ob = preprocess_orderbook(args, ob)
                
@@ -117,11 +114,8 @@ def main(args):
     del ob
     
     
-    trade_paths = [os.path.join(args.trade_dir, path) if not path.startswith('.') else None
-                   for path in os.listdir(args.trade_dir)]
+    trade_paths = [os.path.join(args.trade_dir, path) for path in os.listdir(args.trade_dir)]
     for trade_path in tqdm(trade_paths):
-        if trade_path is None:
-            continue
         tr = pd.read_csv(trade_path)
         tr, tr_minute = preprocess_trade(args, tr)
         
@@ -134,11 +128,8 @@ def main(args):
     del tr,tr_minute
     
     
-    date_paths = [os.path.join(args.intermediate_dir, path) if not path.startswith('.') else None
-                  for path in os.listdir(args.intermediate_dir)]
+    date_paths = [os.path.join(args.intermediate_dir, path) for path in os.listdir(args.intermediate_dir)]
     for date_path in tqdm(date_paths):
-        if date_path is None:
-            continue
         date = pd.to_datetime(date_path.split(args.intermediate_dir+'/')[1])
         ob = pd.read_csv(os.path.join(date_path, 'orderbook.csv'))
         tr = pd.read_csv(os.path.join(date_path, 'trade.csv'))
