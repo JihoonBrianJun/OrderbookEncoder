@@ -61,8 +61,7 @@ def main(args):
                                  tr_feature_dim=feature_dim_dict['tr'],
                                  volume_feature_dim=feature_dim_dict['volume'],
                                  tgt_feature_dim=feature_dim_dict['tgt'],
-                                 data_len=data_len,
-                                 pred_len=pred_len,
+                                 data_len=data_len_dict['ob'],
                                  ob_importance=args.ob_importance,
                                  tr_importance=args.tr_importance).to(device)
 
@@ -86,13 +85,17 @@ def main(args):
                               min=-args.tgt_clip_value, 
                               max=args.tgt_clip_value).to(torch.float32).to(device)
             
+            loss = 0
             for step in range(pred_len):
-                out = model(ob, tr, volume, tgt[:,:data_len+step,:])
-                label = tgt[:,1:data_len+step+1,:].squeeze(dim=2)
-                loss = loss_function(out,label)
-                loss.backward()
+                if step == 0:
+                    out = model(ob, tr, volume, tgt[:,:-pred_len,:])
+                else:
+                    out = model(ob, tr, volume, out.unsqueeze(dim=2))
+                label = tgt[:,step+1:step+1+data_len,:].squeeze(dim=2)
+                loss += (step+1) * loss_function(out,label)
             
-            epoch_loss += loss.detach().cpu().item()
+            epoch_loss += loss.detach().cpu().item() / sum([i+1 for i in range(pred_len)])
+            loss.backward()
                     
             optimizer.step()
             optimizer.zero_grad()
@@ -116,12 +119,16 @@ def main(args):
                                   min=-args.tgt_clip_value,
                                   max=args.tgt_clip_value).to(torch.float32).to(device)
                 
+                loss = 0
                 for step in range(pred_len):
-                    out = model(ob, tr, volume, tgt[:,:data_len+step,:])
-
-                label = tgt[:,1:,:].squeeze(dim=2)                    
-                loss = loss_function(out,label)
-                test_loss += loss.detach().cpu().item()
+                    if step == 0:
+                        out = model(ob, tr, volume, tgt[:,:-pred_len,:])
+                    else:
+                        out = model(ob, tr, volume, out.unsqueeze(dim=2))
+                    label = tgt[:,step+1:step+1+data_len,:].squeeze(dim=2)
+                    loss += (step+1) * loss_function(out,label)
+                
+                test_loss += loss.detach().cpu().item() / sum([i+1 for i in range(pred_len)])
                 correct += ((out[:,-1]*label[:,-1])>0).sum().item()
 
                 rec_tgt += (label[:,-1]>=args.value_threshold).to(torch.long).sum().item()
