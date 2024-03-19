@@ -145,10 +145,10 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--orderbook_dir', type=str, default='../data/orderbook')
-    parser.add_argument('--trade_dir', type=str, default='../data/trade')
-    parser.add_argument('--intermediate_dir', type=str, default='../data/processed')
-    parser.add_argument('--final_save_dir', type=str, default='../data/combined/minute')
+    parser.add_argument('--orderbook_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/orderbook')
+    parser.add_argument('--trade_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/trade')
+    parser.add_argument('--intermediate_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/processed')
+    parser.add_argument('--final_save_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/combined/minute')
     parser.add_argument('--data_freq', type=int, default=5)
     parser.add_argument('--clip_range', type=int, default=2)
     parser.add_argument('--price_interval_num', type=int, default=21)

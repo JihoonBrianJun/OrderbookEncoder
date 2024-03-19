@@ -43,8 +43,8 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='../data/combined/second')
-    parser.add_argument('--save_dir', type=str, default='../data/train/second')
+    parser.add_argument('--data_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/combined/second')
+    parser.add_argument('--save_dir', type=str, default='/home/jay/UpbitTrade/analysis/data/train/second')
     parser.add_argument('--data_len', type=int, default=120)
     parser.add_argument('--data_hop', type=int, default=20)
     parser.add_argument('--pred_len', type=int, default=10)
