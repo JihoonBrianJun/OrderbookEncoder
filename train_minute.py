@@ -126,9 +126,9 @@ def main(args):
                     else:
                         out = model(ob, tr, volume, out.unsqueeze(dim=2))
                     label = tgt[:,step+1:step+1+data_len,:].squeeze(dim=2)
-                    loss += (step+1) * loss_function(out,label)
+                    loss += step * loss_function(out,label)
                 
-                test_loss += loss.detach().cpu().item() / sum([i+1 for i in range(pred_len)])
+                test_loss += loss.detach().cpu().item() / pred_len
                 correct += ((out[:,-1]*label[:,-1])>0).sum().item()
 
                 rec_tgt += (label[:,-1]>=args.value_threshold).to(torch.long).sum().item()
