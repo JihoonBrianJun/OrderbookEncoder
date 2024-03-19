@@ -10,9 +10,9 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from model.minute import OrderbookTrade2Price
-from preprocess.minute_preprocess_all import preprocess_orderbook, preprocess_trade, preprocess_combine
-from preprocess.minute_train_preprocess import train_preprocess
+from analysis.model.minute import OrderbookTrade2Price
+from analysis.preprocess.minute_preprocess_all import preprocess_orderbook, preprocess_trade, preprocess_combine
+from analysis.preprocess.minute_train_preprocess import train_preprocess
 
 
 def main(args):

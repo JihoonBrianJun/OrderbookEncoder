@@ -139,8 +139,8 @@ def main(args):
     
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='data/train/minute')
-    parser.add_argument('--save_dir', type=str, default='ckpt/vanilla_minute.pt')
+    parser.add_argument('--data_dir', type=str, default='../data/train/minute')
+    parser.add_argument('--save_dir', type=str, default='../ckpt/vanilla_minute.pt')
     parser.add_argument('--pred_len', type=int, default=1)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
