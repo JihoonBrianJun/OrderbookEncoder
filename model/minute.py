@@ -23,7 +23,7 @@ class PositionalEncoding(nn.Module):
 class OrderbookTrade2Price(nn.Module):
     def __init__(self, model_dim, n_head, num_layers, 
                  ob_feature_dim, tr_feature_dim, volume_feature_dim, tgt_feature_dim,
-                 data_len, ob_importance=0.4, tr_importance=0.4):
+                 data_len, pred_len, ob_importance=0.4, tr_importance=0.4):
         super().__init__()
         ob_proj_dim = int(model_dim*ob_importance)
         tr_proj_dim = int(model_dim*tr_importance)
@@ -33,8 +33,10 @@ class OrderbookTrade2Price(nn.Module):
         self.volume_proj = nn.Linear(volume_feature_dim, model_dim-ob_proj_dim-tr_proj_dim)
         self.tgt_proj = nn.Linear(tgt_feature_dim, model_dim)
         
-        self.pos_emb = PositionalEncoding(d_model=model_dim,
-                                          max_len=data_len)
+        self.in_pos_emb = PositionalEncoding(d_model=model_dim,
+                                             max_len=data_len)
+        self.out_pos_emb = PositionalEncoding(d_model=model_dim,
+                                              max_len=data_len+pred_len)
         
         self.transformer = Transformer(d_model=model_dim,
                                        nhead=n_head,
@@ -50,11 +52,11 @@ class OrderbookTrade2Price(nn.Module):
         tr = self.tr_proj(tr)
         volume = self.volume_proj(volume)
         
-        src = self.pos_emb(torch.cat((ob,tr,volume),dim=2))
+        src = self.in_pos_emb(torch.cat((ob,tr,volume),dim=2))
         if src_mask is not None:
             src_mask = src_mask.to(src.device)
             
-        tgt = self.pos_emb(self.tgt_proj(tgt))
+        tgt = self.out_pos_emb(self.tgt_proj(tgt))
         if tgt_mask is None:
             tgt_mask = Transformer.generate_square_subsequent_mask(tgt.shape[1])
         tgt_mask = tgt_mask.to(tgt.device)
