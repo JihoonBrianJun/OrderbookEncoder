@@ -91,12 +91,11 @@ def main(args):
                 label = tgt[:,1:data_len+step+1,:].squeeze(dim=2)
                 loss = loss_function(out,label)
                 loss.backward()
+
+                optimizer.step()
+                optimizer.zero_grad()
             
-            epoch_loss += loss.detach().cpu().item()
-                    
-            optimizer.step()
-            optimizer.zero_grad()
-        
+            epoch_loss += loss.detach().cpu().item()        
         print(f'Epoch {epoch} Average Loss: {epoch_loss/(idx+1)}')
         scheduler.step()    
     
