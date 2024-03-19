@@ -13,12 +13,6 @@ Correctly and precisely predict the `rate of price change after 1 minute`, based
 
 ## Preliminary
 
-To begin with, clone this repo using the following command.
-```
-git clone https://github.com/JihoonBrianJun/OrderbookEncoder.git
-cd OrderbookEncoder
-```
-
 Conda environments used for this project can be replicated by the following command.
 ```
 conda env create -f requirements.yaml
