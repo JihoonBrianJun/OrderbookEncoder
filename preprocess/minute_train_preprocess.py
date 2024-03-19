@@ -6,7 +6,6 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 
 def train_preprocess(args, df):
-        df['minute'] = pd.to_datetime(df['minute'])
         df = df[df['minute']!=df['minute'].min()].set_index('minute')
         df = df.loc[df.index.min()+pd.Timedelta("1min"):df.index.max()-pd.Timedelta("1min")]
         ob = df[['time_floor','orderbook_pos','best_qty_ratio']].drop_duplicates()
@@ -30,15 +29,14 @@ def train_preprocess(args, df):
 
 def main(args):
     files = os.listdir(args.data_dir)
-    save_dir = f'{args.save_dir}_{args.pred_len}'
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
         
     for file in tqdm(files):
         df = pd.read_csv(os.path.join(args.data_dir, file))
         data = train_preprocess(args, df)
 
-        with open(os.path.join(save_dir, f'train_{file.split(".csv")[0]}.json'), 'w') as f:
+        with open(os.path.join(args.save_dir, f'train_{file.split(".csv")[0]}.json'), 'w') as f:
             json.dump(data,f)
     
     
