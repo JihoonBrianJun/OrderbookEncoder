@@ -88,9 +88,9 @@ class OrderbookTrade2Classifier(nn.Module):
         self.orderbook_trade_transformer = OrderbookTradeTransformer(model_dim, n_head, num_layers,
                                                                      ob_feature_dim, tr_feature_dim, volume_feature_dim, tgt_feature_dim,
                                                                      data_len, pred_len, ob_importance, tr_importance)
-        self.out_proj = nn.Linear(model_dim, pred_len*result_dim)
-        self.softmax = nn.Softmax(dim=3)
+        self.out_proj = nn.Linear(model_dim, result_dim)
+        self.softmax = nn.Softmax(dim=2)
     
     def forward(self, ob, tr, volume, tgt, src_mask=None, tgt_mask=None):
         out = self.orderbook_trade_transformer(ob, tr, volume, tgt, src_mask, tgt_mask)
-        return self.softmax(self.out_proj(out).view(-1,tgt.shape[1],self.pred_len,self.result_dim)).view(-1,tgt.shape[1],self.pred_len*self.result_dim)
+        return self.softmax(self.out_proj(out))

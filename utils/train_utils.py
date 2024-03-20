@@ -63,6 +63,9 @@ def train_classifier(result_dim, model, optimizer, scheduler, loss_function,
                      data_len, pred_len, tgt_amplifier, tgt_clip_value,
                      value_threshold, strong_threshold,
                      epoch, device, save_dir):
+
+    if pred_len > 1:
+        raise NotImplementedError("Classifier has not yet been implemented for pred_len bigger than 1")
     
     for epoch in tqdm(range(epoch)):
         if epoch % 10 == 0:
@@ -86,10 +89,7 @@ def train_classifier(result_dim, model, optimizer, scheduler, loss_function,
             label = tgt[:,1:,:].squeeze(dim=2)
             label = convert_label(label, result_dim, value_threshold)
             
-            if pred_len == 1:
-                loss = loss_function(out[:,-1,:],label[:,-1])
-            elif pred_len > 1:
-                loss = loss_function(out[:,-1,:].reshape(-1,result_dim),label[:,-pred_len:].reshape(-1))
+            loss = loss_function(out[:,-1,:],label[:,-1])
             loss.backward()
 
             optimizer.step()

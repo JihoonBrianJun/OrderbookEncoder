@@ -58,6 +58,9 @@ def test_classifier(result_dim, model, loss_function,
                     value_threshold, strong_threshold,
                     device, save_dir, save_ckpt=True, load_ckpt=False):
     
+    if pred_len > 1:
+        raise NotImplementedError("Classifier has not yet been implemented for pred_len bigger than 1")
+    
     if save_ckpt:
         torch.save(model.state_dict(), save_dir)
     if load_ckpt:
@@ -82,10 +85,7 @@ def test_classifier(result_dim, model, loss_function,
         label = tgt[:,1:,:].squeeze(dim=2)
         label = convert_label(label, result_dim, value_threshold)
         
-        if pred_len == 1:
-            loss = loss_function(out[:,-1,:],label[:,-1])
-        elif pred_len > 1:
-            loss = loss_function(out[:,-1,:].reshape(-1,result_dim),label[:,-pred_len:].reshape(-1))
+        loss = loss_function(out[:,-1,:],label[:,-1])
         test_loss += loss.detach().cpu().item()
         correct += (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).sum().item()
 
