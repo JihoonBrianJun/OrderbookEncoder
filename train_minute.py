@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
 
 from model.minute import OrderbookTrade2Predictor, OrderbookTrade2Classifier
-from utils.train_utils import train_predictor, train_classifier
+from utils.train_utils import process_instance, train_predictor, train_classifier
 from utils.label_utils import convert_label
 
 
@@ -26,12 +26,7 @@ def prepare_data(data_dir, result_dim, value_threshold, tgt_amplifier):
         with open(data_file, 'r') as f:
             data = json.load(f)
             for ins_idx, ins in enumerate(data):
-                for key in ins.keys():
-                    ins[key] = np.array(ins[key]).reshape(len(ins[key]),-1)
-                    if file_idx == 0 and ins_idx == 0:
-                        print(f'Each {key} shape: {ins[key].shape}')
-                        data_len_dict[key] = ins[key].shape[0]
-                        feature_dim_dict[key] = ins[key].shape[1]
+                process_instance(ins, ins_idx, data_len_dict, feature_dim_dict, file_idx)
                 label_num_list[convert_label(torch.tensor(ins['tgt'][-1,0]), result_dim, value_threshold/tgt_amplifier).item()] += 1
         if file_idx != len(data_files)-1:
             train_data.extend(data)

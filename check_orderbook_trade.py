@@ -10,9 +10,12 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from model.minute import OrderbookTrade2Price
+
+from model.minute import OrderbookTrade2Predictor, OrderbookTrade2Classifier
 from preprocess.minute_preprocess_all import preprocess_orderbook, preprocess_trade, preprocess_combine
 from preprocess.minute_train_preprocess import train_preprocess
+from utils.train_utils import process_instance
+from utils.test_utils import test_predictor, test_classifier
 
 
 def main(args):
@@ -24,17 +27,35 @@ def main(args):
     else:
         device = torch.device("cpu")
 
-    model = OrderbookTrade2Price(model_dim=args.model_dim,
-                                 n_head=args.n_head,
-                                 num_layers=args.num_layers,
-                                 ob_feature_dim=int(2*(60/args.data_freq)),
-                                 tr_feature_dim=int(2*(60/args.data_freq)*args.price_interval_num),
-                                 volume_feature_dim=1,
-                                 tgt_feature_dim=1,
-                                 data_len=args.data_len,
-                                 ob_importance=args.ob_importance,
-                                 tr_importance=args.tr_importance).to(device)
-    model.load_state_dict(torch.load(f'{args.model_ckpt_path}_{args.pred_len}.pt', map_location=device))
+
+    if args.model_type == 'predictor':   
+        model = OrderbookTrade2Predictor(model_dim=args.model_dim,
+                                         n_head=args.n_head,
+                                         num_layers=args.num_layers,
+                                         ob_feature_dim=int(2*(60/args.data_freq)),
+                                         tr_feature_dim=int(2*(60/args.data_freq)*args.price_interval_num),
+                                         volume_feature_dim=1,
+                                         tgt_feature_dim=1,
+                                         data_len=args.data_len,
+                                         pred_len=args.pred_len,
+                                         ob_importance=args.ob_importance,
+                                         tr_importance=args.tr_importance).to(device)
+
+    elif args.model_type == 'classifier':
+        model = OrderbookTrade2Classifier(result_dim=args.result_dim,
+                                          model_dim=args.model_dim,
+                                          n_head=args.n_head,
+                                          num_layers=args.num_layers,
+                                          ob_feature_dim=int(2*(60/args.data_freq)),
+                                          tr_feature_dim=int(2*(60/args.data_freq)*args.price_interval_num),
+                                          volume_feature_dim=1,
+                                          tgt_feature_dim=1,
+                                          data_len=args.data_len,
+                                          pred_len=args.pred_len,
+                                          ob_importance=args.ob_importance,
+                                          tr_importance=args.tr_importance).to(device)
+        
+    model.load_state_dict(torch.load(f'{args.model_ckpt_path}_{args.model_type}_{args.pred_len}.pt', map_location=device))
 
     for loop_idx in tqdm(range(args.loop_rep)):
         orderbook_data = []
@@ -87,49 +108,46 @@ def main(args):
                 
                 data_len_dict, feature_dim_dict = dict(), dict()
                 for ins_idx, ins in enumerate(data):
-                    for key in ins.keys():
-                        ins[key] = np.array(ins[key]).reshape(len(ins[key]),-1)
-                        if ins_idx == 0:
-                            print(f'Each {key} shape: {ins[key].shape}')
-                            data_len_dict[key] = ins[key].shape[0]
-                            feature_dim_dict[key] = ins[key].shape[1]
+                    process_instance(ins, ins_idx, data_len_dict, feature_dim_dict)
                 print(f'# of instances: {len(data)}')
                 
                 bs = min(len(data),args.bs)
                 dataloader = DataLoader(data, batch_size=bs, shuffle=True)
-                loss_function = nn.MSELoss()
                 
-                model.eval()
-                test_loss = 0
-                correct = 0
-                rec_correct, rec_tgt = 0,0
-                strong_prec_correct, strong_prec_tgt = 0,0
-                for idx, batch in enumerate(dataloader):
-                    ob = batch['ob'].to(torch.float32).to(device)
-                    tr = batch['tr'].to(torch.float32).to(device)
-                    volume = batch['volume'].to(torch.float32).to(device)
-                    tgt = torch.clamp(batch['tgt']*args.tgt_amplifier,
-                                      min=-args.tgt_clip_value,
-                                      max=args.tgt_clip_value).to(torch.float32).to(device)
+                print(f'Loop {loop_idx} Code {market_code} Eval Result:\n')
+                
+                if args.train_type == 'predictor':
+                    loss_function = nn.MSELoss()
+                    test_predictor(model=model,
+                                   loss_function=loss_function,
+                                   test_loader=dataloader,
+                                   test_bs=bs,
+                                   data_len=args.data_len,
+                                   pred_len=args.pred_len,
+                                   tgt_amplifier=args.tgt_amplifier,
+                                   tgt_clip_value=args.tgt_clip_value,
+                                   value_threshold=args.value_threshold,
+                                   strong_threshold=args.strong_threshold,
+                                   device=device,
+                                   save_dir=None,
+                                   save_ckpt=False)
                     
-                    out = model(ob, tr, volume, tgt[:,:-1,:])
-                    label = tgt[:,1:,:].squeeze(dim=2)
-                    
-                    loss = loss_function(out,label)
-                    test_loss += loss.detach().cpu().item()
-                    correct += ((out[:,-1]*label[:,-1])>0).sum().item()
-
-                    rec_tgt += (label[:,-1]>=args.value_threshold).to(torch.long).sum().item()
-                    rec_correct += ((label[:,-1]>=args.value_threshold).to(torch.long) * (out[:,-1]>0).to(torch.long)).sum().item()
-
-                    strong_prec_tgt += (out[:,-1]>=args.strong_threshold).to(torch.long).sum().item()
-                    strong_prec_correct += ((out[:,-1]>=args.strong_threshold).to(torch.long) * (label[:,-1]>0).to(torch.long)).sum().item()
-
-                print(f'Loop {loop_idx} Code {market_code} Out: {out[:,-1]}\n Label: {label[:,-1]}')
-                print(f'Loop {loop_idx} Code {market_code} Average Loss: {test_loss / (idx+1)}')
-                print(f'Loop {loop_idx} Code {market_code} Correct: {correct} out of {bs*(idx+1)}')
-                print(f'Loop {loop_idx} Code {market_code} Recall: {rec_correct} out of {rec_tgt}')
-                print(f'Loop {loop_idx} Code {market_code} Precision (Strong): {strong_prec_correct} out of {strong_prec_tgt}')
+                elif args.train_type == 'classifier':
+                    loss_function = nn.CrossEntropyLoss()
+                    test_classifier(result_dim=args.resuld_dim,
+                                    model=model,
+                                    loss_function=loss_function,
+                                    test_loader=dataloader,
+                                    test_bs=bs,
+                                    data_len=args.data_len,
+                                    pred_len=args.pred_len,
+                                    tgt_amplifier=args.tgt_amplifier,
+                                    tgt_clip_value=args.tgt_clip_value,
+                                    value_threshold=args.value_threshold,
+                                    strong_threshold=args.strong_threshold,
+                                    device=device,
+                                    save_dir=None,
+                                    save_ckpt=False)
             
             except:
                 print(f'Loop {loop_idx} Code {market_code} Evaluation failed!')
@@ -139,7 +157,7 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--market_codes_path', type=str, default='./result/top_market_codes.json')
-    parser.add_argument('--model_ckpt_path', type=str, default='analysis/vanilla_minute')
+    parser.add_argument('--model_ckpt_path', type=str, default='ckpt/vanilla_minute')
     parser.add_argument('--loop_rep', type=int, default=3)
     parser.add_argument('--loop_len', type=int, default=10800)
     parser.add_argument('--data_len', type=int, default=20)
@@ -148,6 +166,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_freq', type=int, default=5)
     parser.add_argument('--clip_range', type=int, default=2)
     parser.add_argument('--price_interval_num', type=int, default=21)
+    parser.add_argument('--model_type', type=str, default='predictor', choices=['predictor', 'classifier'])
+    parser.add_argument('--result_dim', type=int, default=3)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)

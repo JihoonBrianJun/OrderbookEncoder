@@ -6,10 +6,13 @@ def test_predictor(model, loss_function,
                    dataloader, test_bs,
                    data_len, pred_len, tgt_amplifier, tgt_clip_value,
                    value_threshold, strong_threshold,
-                   device, save_dir):
+                   device, save_dir, save_ckpt=True, load_ckpt=False):
     
-    torch.save(model.state_dict(), save_dir)
-    # model.load_state_dict(torch.load(save_dir))
+    if save_ckpt:
+        torch.save(model.state_dict(), save_dir)
+    if load_ckpt:
+        model.load_state_dict(torch.load(save_dir))
+
     model.eval()
     test_loss = 0
     correct = 0
@@ -20,8 +23,8 @@ def test_predictor(model, loss_function,
         tr = batch['tr'].to(torch.float32).to(device)
         volume = batch['volume'].to(torch.float32).to(device)
         tgt = torch.clamp(batch['tgt']*tgt_amplifier,
-                            min=-tgt_clip_value,
-                            max=tgt_clip_value).to(torch.float32).to(device)
+                          min=-tgt_clip_value,
+                          max=tgt_clip_value).to(torch.float32).to(device)
         
         for step in range(pred_len):
             if step == 0:
@@ -53,10 +56,13 @@ def test_classifier(result_dim, model, loss_function,
                     dataloader, test_bs,
                     data_len, pred_len, tgt_amplifier, tgt_clip_value,
                     value_threshold, strong_threshold,
-                    device, save_dir):
+                    device, save_dir, save_ckpt=True, load_ckpt=False):
     
-    torch.save(model.state_dict(), save_dir)
-    # model.load_state_dict(torch.load(save_dir))
+    if save_ckpt:
+        torch.save(model.state_dict(), save_dir)
+    if load_ckpt:
+        model.load_state_dict(torch.load(save_dir))
+
     model.eval()
     test_loss = 0
     correct = 0
@@ -69,8 +75,8 @@ def test_classifier(result_dim, model, loss_function,
         tr = batch['tr'].to(torch.float32).to(device)
         volume = batch['volume'].to(torch.float32).to(device)
         tgt = torch.clamp(batch['tgt']*tgt_amplifier,
-                            min=-tgt_clip_value,
-                            max=tgt_clip_value).to(torch.float32).to(device)
+                          min=-tgt_clip_value,
+                          max=tgt_clip_value).to(torch.float32).to(device)
         
         for step in range(pred_len):
             if step == 0:

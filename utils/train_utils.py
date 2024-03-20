@@ -1,7 +1,17 @@
 import torch
+import numpy as np
 from tqdm import tqdm
 from .test_utils import test_predictor, test_classifier
 from .label_utils import convert_label
+
+
+def process_instance(ins, ins_idx, data_len_dict, feature_dim_dict, file_idx=0):
+    for key in ins.keys():
+        ins[key] = np.array(ins[key]).reshape(len(ins[key]),-1)
+        if file_idx == 0 and ins_idx == 0:
+            print(f'Each {key} shape: {ins[key].shape}')
+            data_len_dict[key] = ins[key].shape[0]
+            feature_dim_dict[key] = ins[key].shape[1]
 
 
 def train_predictor(model, optimizer, scheduler, loss_function,
@@ -25,8 +35,8 @@ def train_predictor(model, optimizer, scheduler, loss_function,
             tr = batch['tr'].to(torch.float32).to(device)
             volume = batch['volume'].to(torch.float32).to(device)
             tgt = torch.clamp(batch['tgt']*tgt_amplifier,
-                                min=-tgt_clip_value,
-                                max=tgt_clip_value).to(torch.float32).to(device)
+                              min=-tgt_clip_value,
+                              max=tgt_clip_value).to(torch.float32).to(device)
             
             for step in range(pred_len):
                 out = model(ob, tr, volume, tgt[:,:data_len+step,:])
@@ -69,8 +79,8 @@ def train_classifier(result_dim, model, optimizer, scheduler, loss_function,
             tr = batch['tr'].to(torch.float32).to(device)
             volume = batch['volume'].to(torch.float32).to(device)
             tgt = torch.clamp(batch['tgt']*tgt_amplifier,
-                                min=-tgt_clip_value,
-                                max=tgt_clip_value).to(torch.float32).to(device)
+                              min=-tgt_clip_value,
+                              max=tgt_clip_value).to(torch.float32).to(device)
             
             for step in range(pred_len):
                 out = model(ob, tr, volume, tgt[:,:data_len+step,:])
