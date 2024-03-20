@@ -20,7 +20,8 @@ class PositionalEncoding(nn.Module):
         x = x + self.pe[:x.size(0)]
         return (self.dropout(x)).transpose(0,1)
 
-class OrderbookTrade2Price(nn.Module):
+
+class OrderbookTradeTransformer(nn.Module):
     def __init__(self, model_dim, n_head, num_layers, 
                  ob_feature_dim, tr_feature_dim, volume_feature_dim, tgt_feature_dim,
                  data_len, pred_len, ob_importance=0.4, tr_importance=0.4):
@@ -44,8 +45,6 @@ class OrderbookTrade2Price(nn.Module):
                                        num_decoder_layers=num_layers,
                                        dim_feedforward=model_dim*4,
                                        batch_first=True)
-        
-        self.out_proj = nn.Linear(model_dim, 1)
     
     def forward(self, ob, tr, volume, tgt, src_mask=None, tgt_mask=None):
         ob = self.ob_proj(ob)
@@ -61,5 +60,35 @@ class OrderbookTrade2Price(nn.Module):
             tgt_mask = Transformer.generate_square_subsequent_mask(tgt.shape[1])
         tgt_mask = tgt_mask.to(tgt.device)
         
-        out = self.transformer(src, tgt, src_mask=src_mask, tgt_mask=tgt_mask)
+        return self.transformer(src, tgt, src_mask=src_mask, tgt_mask=tgt_mask)
+
+
+class OrderbookTrade2Predictor(nn.Module):
+    def __init__(self, model_dim, n_head, num_layers, 
+                 ob_feature_dim, tr_feature_dim, volume_feature_dim, tgt_feature_dim,
+                 data_len, pred_len, ob_importance=0.4, tr_importance=0.4):
+        super().__init__()
+        self.orderbook_trade_transformer = OrderbookTradeTransformer(model_dim, n_head, num_layers,
+                                                                     ob_feature_dim, tr_feature_dim, volume_feature_dim, tgt_feature_dim,
+                                                                     data_len, pred_len, ob_importance, tr_importance)
+        self.out_proj = nn.Linear(model_dim, 1)
+    
+    def forward(self, ob, tr, volume, tgt, src_mask=None, tgt_mask=None):
+        out = self.orderbook_trade_transformer(ob, tr, volume, tgt, src_mask, tgt_mask)
         return self.out_proj(out).squeeze(dim=2)
+
+
+class OrderbookTrade2Classifier(nn.Module):
+    def __init__(self, result_dim, model_dim, n_head, num_layers, 
+                 ob_feature_dim, tr_feature_dim, volume_feature_dim, tgt_feature_dim,
+                 data_len, pred_len, ob_importance=0.4, tr_importance=0.4):
+        super().__init__()
+        self.orderbook_trade_transformer = OrderbookTradeTransformer(model_dim, n_head, num_layers,
+                                                                     ob_feature_dim, tr_feature_dim, volume_feature_dim, tgt_feature_dim,
+                                                                     data_len, pred_len, ob_importance, tr_importance)
+        self.out_proj = nn.Linear(model_dim, result_dim)
+        self.softmax = nn.Softmax(dim=2)
+    
+    def forward(self, ob, tr, volume, tgt, src_mask=None, tgt_mask=None):
+        out = self.orderbook_trade_transformer(ob, tr, volume, tgt, src_mask, tgt_mask)
+        return self.softmax(self.out_proj(out))
