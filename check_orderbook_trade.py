@@ -120,7 +120,7 @@ def main(args):
                     loss_function = nn.MSELoss()
                     test_predictor(model=model,
                                    loss_function=loss_function,
-                                   test_loader=dataloader,
+                                   dataloader=dataloader,
                                    test_bs=bs,
                                    data_len=args.data_len,
                                    pred_len=args.pred_len,
@@ -134,10 +134,10 @@ def main(args):
                     
                 elif args.model_type == 'classifier':
                     loss_function = nn.CrossEntropyLoss()
-                    test_classifier(result_dim=args.resuld_dim,
+                    test_classifier(result_dim=args.result_dim,
                                     model=model,
                                     loss_function=loss_function,
-                                    test_loader=dataloader,
+                                    dataloader=dataloader,
                                     test_bs=bs,
                                     data_len=args.data_len,
                                     pred_len=args.pred_len,
