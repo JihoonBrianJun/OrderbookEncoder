@@ -176,7 +176,7 @@ if __name__ == '__main__':
     parser.add_argument('--tgt_amplifier', type=float, default=10)
     parser.add_argument('--tgt_clip_value', type=float, default=1)
     parser.add_argument('--value_threshold', type=float, default=0.5)
-    parser.add_argument('--strong_threshold', type=float, default=0.9)
+    parser.add_argument('--strong_threshold', type=float, default=0.5)
     parser.add_argument('--ob_importance', type=float, default=0.4)
     parser.add_argument('--tr_importance', type=float, default=0.4)
     args = parser.parse_args()
