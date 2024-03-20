@@ -78,16 +78,14 @@ def test_classifier(result_dim, model, loss_function,
                           min=-tgt_clip_value,
                           max=tgt_clip_value).to(torch.float32).to(device)
         
-        for step in range(pred_len):
-            if step == 0:
-                out = model(ob, tr, volume, tgt[:,:data_len,:])
-            else:
-                out = model(ob, tr, volume, torch.cat((tgt[:,:data_len,:], out[:,-step:].unsqueeze(dim=2)),dim=1))
-
+        out = model(ob, tr, volume, tgt[:,:data_len,:])                
         label = tgt[:,1:,:].squeeze(dim=2)
-        label = convert_label(label, result_dim, value_threshold) 
-                    
-        loss = loss_function(out.view(-1,result_dim),label.view(-1))
+        label = convert_label(label, result_dim, value_threshold)
+        
+        if pred_len == 1:
+            loss = loss_function(out[:,-1,:],label[:,-1])
+        elif pred_len > 1:
+            loss = loss_function(out[:,-1,:].reshape(-1,result_dim),label[:,-pred_len:].reshape(-1))
         test_loss += loss.detach().cpu().item()
         correct += (torch.argmax(out[:,-1,:],dim=1)==label[:,-1]).sum().item()
 

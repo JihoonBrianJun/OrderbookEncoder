@@ -82,16 +82,18 @@ def train_classifier(result_dim, model, optimizer, scheduler, loss_function,
                               min=-tgt_clip_value,
                               max=tgt_clip_value).to(torch.float32).to(device)
             
-            for step in range(pred_len):
-                out = model(ob, tr, volume, tgt[:,:data_len+step,:])
-                label = tgt[:,1:data_len+step+1,:].squeeze(dim=2)
-                label = convert_label(label, result_dim, value_threshold)
-                
-                loss = loss_function(out.view(-1,result_dim),label.view(-1))
-                loss.backward()
+            out = model(ob, tr, volume, tgt[:,:data_len,:])                
+            label = tgt[:,1:,:].squeeze(dim=2)
+            label = convert_label(label, result_dim, value_threshold)
+            
+            if pred_len == 1:
+                loss = loss_function(out[:,-1,:],label[:,-1])
+            elif pred_len > 1:
+                loss = loss_function(out[:,-1,:].reshape(-1,result_dim),label[:,-pred_len:].reshape(-1))
+            loss.backward()
 
-                optimizer.step()
-                optimizer.zero_grad()
+            optimizer.step()
+            optimizer.zero_grad()
             
             epoch_loss += loss.detach().cpu().item()        
         print(f'Epoch {epoch} Average Loss: {epoch_loss/(idx+1)}')
