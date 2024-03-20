@@ -30,7 +30,7 @@ Raw data files can be either downloaded directly from Binance (https://www.binan
 
 Data products used in this project are `Book Ticker`(tick-level updates of the best bid and best ask on an order book) and `Trades`(executed transactions updated at tick level).
 
-This project used Jan/01/2024 ~ Jan/06/2024 data for training, and Jan/07/2024 data for validation.
+This project used Jan/01/2024 ~ Jan/07/2024 (excluding Jan/03/2024) data for training, and Jan/03/2024 data for validation.
 
 Data files used for training in this project can be downloaded using the following command.
 ```

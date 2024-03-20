@@ -5,6 +5,5 @@ data/trade/*
 data/processed/*
 # data/train/*
 real_data/*
-# ckpt/*.pt
-ckpt/vanilla_minute_classifier*.pt
+ckpt/*.pt
 out.txt
