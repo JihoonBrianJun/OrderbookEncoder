@@ -116,7 +116,7 @@ def main(args):
                 
                 print(f'Loop {loop_idx} Code {market_code} Eval Result:\n')
                 
-                if args.train_type == 'predictor':
+                if args.model_type == 'predictor':
                     loss_function = nn.MSELoss()
                     test_predictor(model=model,
                                    loss_function=loss_function,
@@ -132,7 +132,7 @@ def main(args):
                                    save_dir=None,
                                    save_ckpt=False)
                     
-                elif args.train_type == 'classifier':
+                elif args.model_type == 'classifier':
                     loss_function = nn.CrossEntropyLoss()
                     test_classifier(result_dim=args.resuld_dim,
                                     model=model,
