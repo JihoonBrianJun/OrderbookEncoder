@@ -4,6 +4,7 @@ data/orderbook/*
 data/trade/*
 data/processed/*
 # data/train/*
+data/train/minute-60_1/*
 real_data/*
 ckpt/*.pt
 out.txt

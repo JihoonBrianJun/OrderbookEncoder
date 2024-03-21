@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
 
 from model.minute import OrderbookTrade2Predictor, OrderbookTrade2Classifier
-from utils.train_utils import process_instance, train_predictor, train_classifier
+from utils.train_utils import process_instance, train_predictor, train_classifier, train_hybrid
 from utils.label_utils import convert_label
 
 
@@ -52,7 +52,7 @@ def main(args):
     print(f'# of test instances: {len(test_data)}')
     print(f'Label Num List: {label_num_list}')
 
-    if args.train_type == 'classifier':
+    if args.train_type in ['classifier', 'hybrid']:
         ce_weight_numerator = len(train_data)+len(test_data)
         ce_weights = torch.tensor([ce_weight_numerator/label_num for label_num in label_num_list])
         ce_weights = nn.functional.normalize(ce_weights, dim=0, p=1)
@@ -69,7 +69,7 @@ def main(args):
         device = torch.device("cpu")
     
     
-    if args.train_type == 'predictor':   
+    if args.train_type in ['predictor', 'hybrid']:   
         model = OrderbookTrade2Predictor(model_dim=args.model_dim,
                                          n_head=args.n_head,
                                          num_layers=args.num_layers,
@@ -142,13 +142,36 @@ def main(args):
                          epoch=args.epoch,
                          device=device,
                          save_dir=save_dir)
+    
+    elif args.train_type == 'hybrid':
+        loss_function1 = nn.MSELoss()
+        loss_function2 = nn.CrossEntropyLoss(weight=ce_weights.to(device))
+        train_hybrid(result_dim=args.result_dim,
+                     model=model,
+                     optimizer=optimizer,
+                     scheduler=scheduler,
+                     loss_function1=loss_function1,
+                     loss_function2=loss_function2,
+                     loss_weight=args.hybrid_loss_weight,
+                     train_loader=train_loader,
+                     test_loader=test_loader,
+                     test_bs=test_bs,
+                     data_len=data_len_dict['ob'],
+                     pred_len=data_len_dict['tgt'] - data_len_dict['ob'],
+                     tgt_amplifier=args.tgt_amplifier,
+                     tgt_clip_value=args.tgt_clip_value,
+                     value_threshold=args.value_threshold,
+                     strong_threshold=args.strong_threshold,
+                     epoch=args.epoch,
+                     device=device,
+                     save_dir=save_dir)
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/train/minute')
     parser.add_argument('--save_dir', type=str, default='ckpt/vanilla_minute')
-    parser.add_argument('--train_type', type=str, default='predictor', choices=['predictor', 'classifier'])
+    parser.add_argument('--train_type', type=str, default='predictor', choices=['predictor', 'classifier', 'hybrid'])
     parser.add_argument('--pred_len', type=int, default=5)
     parser.add_argument('--result_dim', type=int, default=3)
     parser.add_argument('--model_dim', type=int, default=64)
@@ -165,5 +188,6 @@ if __name__ == '__main__':
     parser.add_argument('--strong_threshold', type=float, default=0.5)
     parser.add_argument('--ob_importance', type=float, default=0.4)
     parser.add_argument('--tr_importance', type=float, default=0.4)
+    parser.add_argument('--hybrid_loss_weight', type=float, default=0.5)
     args = parser.parse_args()
     main(args)

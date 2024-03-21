@@ -28,7 +28,7 @@ def main(args):
         device = torch.device("cpu")
 
 
-    if args.model_type == 'predictor':   
+    if args.model_type in ['predictor', 'hybrid']:   
         model = OrderbookTrade2Predictor(model_dim=args.model_dim,
                                          n_head=args.n_head,
                                          num_layers=args.num_layers,
@@ -148,6 +148,26 @@ def main(args):
                                     device=device,
                                     save_dir=None,
                                     save_ckpt=False)
+
+                elif args.model_type == 'hybrid':
+                    loss_function1 = nn.MSELoss()
+                    loss_function2 = nn.CrossEntropyLoss()
+                    test_classifier(result_dim=args.result_dim,
+                                    model=model,
+                                    loss_function1=loss_function1,
+                                    loss_function2=loss_function2,
+                                    loss_weight=args.hybrid_loss_weight,
+                                    dataloader=dataloader,
+                                    test_bs=bs,
+                                    data_len=args.data_len,
+                                    pred_len=args.pred_len,
+                                    tgt_amplifier=args.tgt_amplifier,
+                                    tgt_clip_value=args.tgt_clip_value,
+                                    value_threshold=args.value_threshold,
+                                    strong_threshold=args.strong_threshold,
+                                    device=device,
+                                    save_dir=None,
+                                    save_ckpt=False)
             
             except:
                 print(f'Loop {loop_idx} Code {market_code} Evaluation failed!')
@@ -166,7 +186,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_freq', type=int, default=5)
     parser.add_argument('--clip_range', type=int, default=2)
     parser.add_argument('--price_interval_num', type=int, default=21)
-    parser.add_argument('--model_type', type=str, default='predictor', choices=['predictor', 'classifier'])
+    parser.add_argument('--model_type', type=str, default='predictor', choices=['predictor', 'classifier', 'hybrid'])
     parser.add_argument('--result_dim', type=int, default=3)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
@@ -179,5 +199,6 @@ if __name__ == '__main__':
     parser.add_argument('--strong_threshold', type=float, default=0.5)
     parser.add_argument('--ob_importance', type=float, default=0.4)
     parser.add_argument('--tr_importance', type=float, default=0.4)
+    parser.add_argument('--hybrid_loss_weight', type=float, default=0.5)
     args = parser.parse_args()
     main(args)

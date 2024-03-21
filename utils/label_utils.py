@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 
 def convert_label(label, result_dim, value_threshold):
     if result_dim == 2:
@@ -9,6 +10,11 @@ def convert_label(label, result_dim, value_threshold):
         return 1+(label>0).to(torch.long)+(label>=value_threshold).to(torch.long)-(label<=-value_threshold).to(torch.long)
     else:
         raise NotImplementedError(f"Current 2,3,and 4 are only possible values for result_dim, but you have passed {result_dim}")
+
+
+def get_one_hot_label(label, result_dim, value_threshold):
+    label = convert_label(label, result_dim, value_threshold)
+    return F.one_hot(label, num_classes=result_dim).to(torch.float32)
 
 
 def is_strong_label(label, result_dim):
