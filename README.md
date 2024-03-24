@@ -34,7 +34,7 @@ By default, this project uses Jan/01/2024 ~ Jan/30/2024 data for training, and J
 
 So far, best performance was achieved when trained on Jan/01/2024 ~ Jan/07/2024 (excluding Jan/03/2024) data, and evaluated on Jan/03/2024 data.
 
-Data files used for training in this project can be downloaded using the following command.
+Raw data files used for training in this project can be downloaded using the following command.
 ```
 gdown 1N9SRJmGB_ebnVaLyZ1R8VslDdM9n1AcI  # Orderbook data (Jan/01/2024 ~ Jan/07/2024)
 gdown 1U0S1vXpAhJhNsZbUN4X13nsDj7q8oBB8  # Orderbook data (Jan/08/2024 ~ Jan/14/2024)
@@ -58,7 +58,7 @@ python3 minute_train_preprocess.py
 * Get the snapshot of `best bid & ask price and quantity` every 5 seconds (12 snapshots per minute).
 * For each snapshot, we normalize the price and quantity values in the following way:
     * Price: ${{Price - {Minute \ Open \ Price}} \over {Minute \ Open \ Price}} \times 1000$
-    * Quantity: $2*{{Best \ Ask \ Quantity} \over {{Best \ Ask \ Quantity} + {Best \ Bid \ Quantity}}}-1$
+    * Quantity: $2 \times {{Best \ Ask \ Quantity} \over {{Best \ Ask \ Quantity} + {Best \ Bid \ Quantity}}}-1$
 * Each snapshot is represented as 2-dimensional (Price & Quantity in the above way) data, and it sums up to $12 \times 2=24$-dimensional data per each minute.
 
 ### Trade Data
@@ -67,7 +67,7 @@ python3 minute_train_preprocess.py
     * ${{Price - {Minute \ Open \ Price}} \over {Minute \ Open \ Price}} \times 1000$
         * Clipped to lie in the range of -2 to 2. (Clipping criterion is subject to change)
 * For each 5 seconds, get the `Maker Ratio` and `Quantity Ratio` for each (normalized) price interval.
-    * Maker Ratio: $2*{{Total \ Quantity \ of \ trades \ whose \ maker \ is \ buyer} \over {Total \ Trade \ Quantity}}-1$
+    * Maker Ratio: $2 \times {{Total \ Quantity \ of \ trades \ whose \ maker \ is \ buyer} \over {Total \ Trade \ Quantity}}-1$
         * Remind that if buyer is the maker, then the trade is triggered by the sell order.
     * Quantity Ratio: ${Total \ Trade \ Quantity \ within \ the \ price \ interval} \over {Total \ Trade \ Quantity \ of \ all \ price \ intervals}$
     * Number of price intervals is pre-determined. In this project, we set it to be 21, but one can change this value at their convenience.
