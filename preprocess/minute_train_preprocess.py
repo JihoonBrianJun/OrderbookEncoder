@@ -21,9 +21,9 @@ def train_preprocess(args, df):
     for idx in tqdm(range(0, minute.shape[0]-args.data_len-args.pred_len, args.data_hop)):
         minute_data = minute[idx:idx+args.data_len+args.pred_len].transpose(1,0,2)
         data.append({'ob':ob_minute[idx:idx+args.data_len].transpose(0,2,1).tolist(),
-                        'tr':tr_minute[idx:idx+args.data_len].transpose(0,2,1).tolist(),
-                        'volume':minute_data[0][:args.data_len].tolist(),
-                        'tgt':minute_data[1].tolist()})
+                     'tr':tr_minute[idx:idx+args.data_len].transpose(0,2,1).tolist(),
+                     'volume':minute_data[0][:args.data_len].tolist(),
+                     'tgt':minute_data[1].tolist()})
     
     return data
 
