@@ -6,26 +6,26 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 
 def train_preprocess(args, df):
-        df['minute'] = pd.to_datetime(df['minute'])
-        df = df[df['minute']!=df['minute'].min()].set_index('minute')
-        df = df.loc[df.index.min()+pd.Timedelta("1min"):df.index.max()-pd.Timedelta("1min")]
-        ob = df[['time_floor','orderbook_pos','best_qty_ratio']].drop_duplicates()
-        tr = df[['time_floor','trade_price_pos','maker_ratio','price_volume_ratio']]
-        minute = df.reset_index()[['minute','minute_volume_change','minute_price_change']].drop_duplicates().set_index('minute')
+    df['minute'] = pd.to_datetime(df['minute'])
+    df = df[df['minute']!=df['minute'].min()].set_index('minute')
+    df = df.loc[df.index.min()+pd.Timedelta("1min"):df.index.max()-pd.Timedelta("1min")]
+    ob = df[['time_floor','orderbook_pos','best_qty_ratio']].drop_duplicates()
+    tr = df[['time_floor','trade_price_pos','maker_ratio','price_volume_ratio']]
+    minute = df.reset_index()[['minute','minute_volume_change','minute_price_change']].drop_duplicates().set_index('minute')
 
-        ob_minute = np.array(ob.groupby('minute')[['orderbook_pos','best_qty_ratio']].apply(lambda x: x.transpose().values.tolist()).tolist())
-        tr_minute = np.array(tr.groupby('minute')[['maker_ratio','price_volume_ratio']].apply(lambda x: x.transpose().values.tolist()).tolist())
-        minute = np.expand_dims(minute.to_numpy(), axis=2)
-        
-        data = []
-        for idx in tqdm(range(0, minute.shape[0]-args.data_len-args.pred_len, args.data_hop)):
-            minute_data = minute[idx:idx+args.data_len+args.pred_len].transpose(1,0,2)
-            data.append({'ob':ob_minute[idx:idx+args.data_len].transpose(0,2,1).tolist(),
-                         'tr':tr_minute[idx:idx+args.data_len].transpose(0,2,1).tolist(),
-                         'volume':minute_data[0][:args.data_len].tolist(),
-                         'tgt':minute_data[1].tolist()})
-        
-        return data
+    ob_minute = np.array(ob.groupby('minute')[['orderbook_pos','best_qty_ratio']].apply(lambda x: x.transpose().values.tolist()).tolist())
+    tr_minute = np.array(tr.groupby('minute')[['maker_ratio','price_volume_ratio']].apply(lambda x: x.transpose().values.tolist()).tolist())
+    minute = np.expand_dims(minute.to_numpy(), axis=2)
+    
+    data = []
+    for idx in tqdm(range(0, minute.shape[0]-args.data_len-args.pred_len, args.data_hop)):
+        minute_data = minute[idx:idx+args.data_len+args.pred_len].transpose(1,0,2)
+        data.append({'ob':ob_minute[idx:idx+args.data_len].transpose(0,2,1).tolist(),
+                        'tr':tr_minute[idx:idx+args.data_len].transpose(0,2,1).tolist(),
+                        'volume':minute_data[0][:args.data_len].tolist(),
+                        'tgt':minute_data[1].tolist()})
+    
+    return data
 
 
 def main(args):
