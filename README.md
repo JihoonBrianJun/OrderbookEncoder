@@ -30,11 +30,17 @@ Raw data files can be either downloaded directly from Binance (https://www.binan
 
 Data products used in this project are `Book Ticker`(tick-level updates of the best bid and best ask on an order book) and `Trades`(executed transactions updated at tick level).
 
-This project used Jan/01/2024 ~ Jan/07/2024 (excluding Jan/03/2024) data for training, and Jan/03/2024 data for validation.
+By default, this project uses Jan/01/2024 ~ Jan/30/2024 data for training, and Jan/31/2024 data for validation.
+So far, best performance was achieved when trained on Jan/01/2024 ~ Jan/07/2024 (excluding Jan/03/2024) data, and evaluated on Jan/03/2024 data.
 
 Data files used for training in this project can be downloaded using the following command.
 ```
-gdown {to-be-updated}
+gdown 1N9SRJmGB_ebnVaLyZ1R8VslDdM9n1AcI  # Orderbook data (Jan/01/2024 ~ Jan/07/2024)
+gdown 1U0S1vXpAhJhNsZbUN4X13nsDj7q8oBB8  # Orderbook data (Jan/08/2024 ~ Jan/14/2024)
+gdown 1bq1Yl63GTEyq6mUl3ccN6uebVa6unf0Z  # Orderbook data (Jan/15/2024 ~ Jan/21/2024)
+gdown 1tKS9W7b-IIIhY6dLPF2utgJgvtClmBsw  # Orderbook data (Jan/22/2024 ~ Jan/28/2024)
+gdown 193yeLpuUQ6AtZ3T2H1eDD6T4pUYEQ1nX  # Orderbook data (Jan/29/2024 ~ Jan/31/2024)
+gdown 1CwTMEwHRxsC25X_AIg1YEmL00u5-jlH1  # Trade data (Jan/01/2024 ~ Jan/31/2024)
 ```
 
 ## Data Preprocessing Pipeline
@@ -50,18 +56,17 @@ python3 minute_train_preprocess.py
 
 * Get the snapshot of `best bid & ask price and quantity` every 5 seconds (12 snapshots per minute).
 * For each snapshot, we normalize the price and quantity values in the following way:
-    * Price: ${Price - {Minute \ Open \ Price}} \over {|{Minute \ Close \ Price} - {Minute \ Open \ Price}|}$
-        * Clipped to lie in the range of -2 to 2. (Clipping criterion is subject to change)
-    * Quantity: ${Best \ Ask \ Quantity} \over {{Best \ Ask \ Quantity} + {Best \ Bid \ Quantity}}$
+    * Price: ${{Price - {Minute \ Open \ Price}} \over {Minute \ Open \ Price}} \times 1000$
+    * Quantity: $2*{{Best \ Ask \ Quantity} \over {{Best \ Ask \ Quantity} + {Best \ Bid \ Quantity}}}-1$
 * Each snapshot is represented as 2-dimensional (Price & Quantity in the above way) data, and it sums up to $12 \times 2=24$-dimensional data per each minute.
 
 ### Trade Data
 
 * Prices recorded in the trade data are first normalized in the following way (similar to the orderbook data):
-    * ${Price - {Minute \ Open \ Price}} \over {|{Minute \ Close \ Price} - {Minute \ Open \ Price}|}$
+    * ${{Price - {Minute \ Open \ Price}} \over {Minute \ Open \ Price}} \times 1000$
         * Clipped to lie in the range of -2 to 2. (Clipping criterion is subject to change)
 * For each 5 seconds, get the `Maker Ratio` and `Quantity Ratio` for each (normalized) price interval.
-    * Maker Ratio: ${Total \ Quantity \ of \ trades \ whose \ maker \ is \ buyer} \over {Total \ Trade \ Quantity}$
+    * Maker Ratio: $2*{{Total \ Quantity \ of \ trades \ whose \ maker \ is \ buyer} \over {Total \ Trade \ Quantity}}-1$
         * Remind that if buyer is the maker, then the trade is triggered by the sell order.
     * Quantity Ratio: ${Total \ Trade \ Quantity \ within \ the \ price \ interval} \over {Total \ Trade \ Quantity \ of \ all \ price \ intervals}$
     * Number of price intervals is pre-determined. In this project, we set it to be 21, but one can change this value at their convenience.
