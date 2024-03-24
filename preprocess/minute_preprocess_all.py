@@ -79,7 +79,7 @@ def preprocess_combine(args, ob_df, tr_df, minute_df, date=None):
     
     ob_df.sort_values(by=['time_floor'],inplace=True)
     ob_df['orderbook_pos'] = (ob_df['mid_price']-ob_df['minute_open_price']) / ob_df['minute_open_price'] * 100 * args.data_amplifier
-    ob_df.drop(['mid_price','minute_open_price','minute_price_range'],axis=1,inplace=True)
+    ob_df.drop(['mid_price','minute_open_price'],axis=1,inplace=True)
     
     tr_df['time_floor'] = pd.to_datetime(tr_df['time_floor'])
     if date is None:
