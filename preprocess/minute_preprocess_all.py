@@ -126,7 +126,7 @@ def main(args):
     del ob
     
     
-    trade_paths = [os.path.join(args.trade_dir, path) if not path.startswith('.') else 'C'
+    trade_paths = [os.path.join(args.trade_dir, path) if not path.startswith('.') else None
                    for path in os.listdir(args.trade_dir)]
     for trade_path in tqdm(trade_paths):
         if trade_path is None:

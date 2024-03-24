@@ -15,7 +15,7 @@ from utils.train_utils import process_instance, train_predictor, train_classifie
 from utils.label_utils import convert_label
 
 
-def prepare_data(data_dir, result_dim, value_threshold, tgt_amplifier):
+def prepare_data(data_dir, result_dim, value_threshold):
     data_files = sorted([os.path.join(data_dir, file) for file in os.listdir(data_dir)])
     train_data, test_data = [], []
     data_len_dict, feature_dim_dict = dict(), dict()
@@ -27,7 +27,7 @@ def prepare_data(data_dir, result_dim, value_threshold, tgt_amplifier):
             data = json.load(f)
             for ins_idx, ins in enumerate(data):
                 process_instance(ins, ins_idx, data_len_dict, feature_dim_dict, file_idx)
-                label_num_list[convert_label(torch.tensor(ins['tgt'][-1,0]), result_dim, value_threshold/tgt_amplifier).item()] += 1
+                label_num_list[convert_label(torch.tensor(ins['tgt'][-1,0]), result_dim, value_threshold).item()] += 1
         if file_idx != len(data_files)-1:
             train_data.extend(data)
         else:
@@ -44,8 +44,7 @@ def main(args):
     
     train_data, test_data, feature_dim_dict, data_len_dict, label_num_list = prepare_data(data_dir,
                                                                                           args.result_dim,
-                                                                                          args.value_threshold,
-                                                                                          args.tgt_amplifier)
+                                                                                          args.value_threshold)
     
     print("Data files loading completed!")
     print(f'# of train instances: {len(train_data)}')
@@ -115,7 +114,6 @@ def main(args):
                         test_bs=test_bs,
                         data_len=data_len_dict['ob'],
                         pred_len=data_len_dict['tgt'] - data_len_dict['ob'],
-                        tgt_amplifier=args.tgt_amplifier,
                         tgt_clip_value=args.tgt_clip_value,
                         value_threshold=args.value_threshold,
                         strong_threshold=args.strong_threshold,
@@ -135,7 +133,6 @@ def main(args):
                          test_bs=test_bs,
                          data_len=data_len_dict['ob'],
                          pred_len=data_len_dict['tgt'] - data_len_dict['ob'],
-                         tgt_amplifier=args.tgt_amplifier,
                          tgt_clip_value=args.tgt_clip_value,
                          value_threshold=args.value_threshold,
                          strong_threshold=args.strong_threshold,
@@ -158,7 +155,6 @@ def main(args):
                      test_bs=test_bs,
                      data_len=data_len_dict['ob'],
                      pred_len=data_len_dict['tgt'] - data_len_dict['ob'],
-                     tgt_amplifier=args.tgt_amplifier,
                      tgt_clip_value=args.tgt_clip_value,
                      value_threshold=args.value_threshold,
                      strong_threshold=args.strong_threshold,
@@ -182,7 +178,6 @@ if __name__ == '__main__':
     parser.add_argument('--bs', type=int, default=16)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--gamma', type=float, default=1)
-    parser.add_argument('--tgt_amplifier', type=float, default=10)
     parser.add_argument('--tgt_clip_value', type=float, default=1)
     parser.add_argument('--value_threshold', type=float, default=0.5)
     parser.add_argument('--strong_threshold', type=float, default=0.5)

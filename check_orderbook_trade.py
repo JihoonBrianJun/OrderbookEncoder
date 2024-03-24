@@ -124,7 +124,6 @@ def main(args):
                                    test_bs=bs,
                                    data_len=args.data_len,
                                    pred_len=args.pred_len,
-                                   tgt_amplifier=args.tgt_amplifier,
                                    tgt_clip_value=args.tgt_clip_value,
                                    value_threshold=args.value_threshold,
                                    strong_threshold=args.strong_threshold,
@@ -141,7 +140,6 @@ def main(args):
                                     test_bs=bs,
                                     data_len=args.data_len,
                                     pred_len=args.pred_len,
-                                    tgt_amplifier=args.tgt_amplifier,
                                     tgt_clip_value=args.tgt_clip_value,
                                     value_threshold=args.value_threshold,
                                     strong_threshold=args.strong_threshold,
@@ -161,7 +159,6 @@ def main(args):
                                     test_bs=bs,
                                     data_len=args.data_len,
                                     pred_len=args.pred_len,
-                                    tgt_amplifier=args.tgt_amplifier,
                                     tgt_clip_value=args.tgt_clip_value,
                                     value_threshold=args.value_threshold,
                                     strong_threshold=args.strong_threshold,
@@ -193,7 +190,6 @@ if __name__ == '__main__':
     parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--gpu', type=bool, default=False)
     parser.add_argument('--bs', type=int, default=256)
-    parser.add_argument('--tgt_amplifier', type=float, default=10)
     parser.add_argument('--tgt_clip_value', type=float, default=1)
     parser.add_argument('--value_threshold', type=float, default=0.5)
     parser.add_argument('--strong_threshold', type=float, default=0.5)
