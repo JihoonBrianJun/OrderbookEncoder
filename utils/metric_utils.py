@@ -35,3 +35,25 @@ def compute_classifier_metrics(pred, target, result_dim, strong_threshold):
     metrics["strong_prec_close"] = ((pred_max.values>=strong_threshold).to(torch.long) * is_strong_label(pred_argmax,result_dim) * is_close_pred(pred_argmax,target,result_dim)).sum().item()
     
     return metrics
+
+
+def compute_contrastive_metrics(out, leftmost_label_idx, rightmost_label_idx):
+    metrics = dict()
+
+    if len(leftmost_label_idx) == 1:
+        metrics["leftmost_tgt"] = 0
+    else:
+        metrics["leftmost_tgt"] = len(leftmost_label_idx)
+    
+    if len(rightmost_label_idx) == 1:
+        metrics["rightmost_tgt"] = 0
+    else:
+        metrics["rightmost_tgt"] = len(rightmost_label_idx)
+    
+    out_leftmost_argmax = torch.sort(out[leftmost_label_idx], dim=1).indices[:,-2]
+    out_rightmost_argmax = torch.sort(out[rightmost_label_idx], dim=1).indices[:,-2]
+
+    metrics["leftmost_correct"] = torch.isin(out_leftmost_argmax, leftmost_label_idx).sum().item()
+    metrics["rightmost_correct"] = torch.isin(out_rightmost_argmax, rightmost_label_idx).sum().item()
+    
+    return metrics

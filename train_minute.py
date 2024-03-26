@@ -10,8 +10,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
 
-from model.minute import OrderbookTrade2Predictor, OrderbookTrade2Classifier
-from utils.train_utils import process_instance, train_predictor, train_classifier, train_hybrid
+from model.minute import OrderbookTradeTransformer, OrderbookTrade2Predictor, OrderbookTrade2Classifier
+from utils.train_utils import process_instance, train_predictor, train_classifier, train_hybrid, train_contrastive
 from utils.label_utils import convert_label
 
 
@@ -95,6 +95,19 @@ def main(args):
                                           ob_importance=args.ob_importance,
                                           tr_importance=args.tr_importance).to(device)
 
+    elif args.train_type == 'contrastive':
+        model = OrderbookTradeTransformer(model_dim=args.model_dim,
+                                          n_head=args.n_head,
+                                          num_layers=args.num_layers,
+                                          ob_feature_dim=feature_dim_dict['ob'],
+                                          tr_feature_dim=feature_dim_dict['tr'],
+                                          volume_feature_dim=feature_dim_dict['volume'],
+                                          tgt_feature_dim=feature_dim_dict['tgt'],
+                                          data_len=data_len_dict['ob'],
+                                          pred_len=data_len_dict['tgt'] - data_len_dict['ob'],
+                                          ob_importance=args.ob_importance,
+                                          tr_importance=args.tr_importance).to(device)
+
     num_param = 0
     for _, param in model.named_parameters():
         num_param += param.numel()
@@ -162,25 +175,42 @@ def main(args):
                      device=device,
                      save_dir=save_dir)
 
+    elif args.train_type == 'contrastive':
+        train_contrastive(result_dim=args.result_dim,
+                          model=model,
+                          optimizer=optimizer,
+                          scheduler=scheduler,
+                          train_loader=train_loader,
+                          test_loader=test_loader,
+                          test_bs=test_bs,
+                          data_len=data_len_dict['ob'],
+                          pred_len=data_len_dict['tgt'] - data_len_dict['ob'],
+                          tgt_clip_value=args.tgt_clip_value,
+                          value_threshold=args.value_threshold,
+                          strong_threshold=args.strong_threshold,
+                          epoch=args.epoch,
+                          device=device,
+                          save_dir=save_dir)
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/train/minute')
     parser.add_argument('--save_dir', type=str, default='ckpt/vanilla_minute')
-    parser.add_argument('--train_type', type=str, default='predictor', choices=['predictor', 'classifier', 'hybrid'])
-    parser.add_argument('--pred_len', type=int, default=5)
-    parser.add_argument('--result_dim', type=int, default=3)
+    parser.add_argument('--train_type', type=str, default='predictor', choices=['predictor', 'classifier', 'hybrid', 'contrastive'])
+    parser.add_argument('--pred_len', type=int, default=1)
+    parser.add_argument('--result_dim', type=int, default=4)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--gpu', type=bool, default=False)
     parser.add_argument('--epoch', type=int, default=10)
-    parser.add_argument('--bs', type=int, default=16)
+    parser.add_argument('--bs', type=int, default=32)
     parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--gamma', type=float, default=1)
-    parser.add_argument('--tgt_clip_value', type=float, default=1)
-    parser.add_argument('--value_threshold', type=float, default=0.5)
-    parser.add_argument('--strong_threshold', type=float, default=0.5)
+    parser.add_argument('--gamma', type=float, default=0.999)
+    parser.add_argument('--tgt_clip_value', type=float, default=2)
+    parser.add_argument('--value_threshold', type=float, default=1)
+    parser.add_argument('--strong_threshold', type=float, default=1)
     parser.add_argument('--ob_importance', type=float, default=0.4)
     parser.add_argument('--tr_importance', type=float, default=0.4)
     parser.add_argument('--hybrid_loss_weight', type=float, default=0.5)

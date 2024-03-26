@@ -34,3 +34,16 @@ def is_close_pred(pred, label, result_dim):
     else:
         raise NotImplementedError(f"Current version of checking if pred and label are close is supported only for result_dim of 3 and 4, but you have passed {result_dim}")
     return (torch.abs(pred-label) <= close_threshold).to(torch.long)
+
+
+def get_extreme_label_pairs(label, result_dim):
+    leftmost_label_idx = (label==0).nonzero().squeeze(dim=1)
+    rightmost_label_idx = (label==result_dim-1).nonzero().squeeze(dim=1)
+    
+    return leftmost_label_idx, rightmost_label_idx
+
+
+def get_nondiag_cartesian(idx):
+    idx_pairs = torch.cartesian_prod(idx, idx).transpose(0,1)
+    nondiag_mask = (1-torch.eye(len(idx))).reshape(-1).nonzero().squeeze(dim=1)
+    return idx_pairs[:,nondiag_mask]

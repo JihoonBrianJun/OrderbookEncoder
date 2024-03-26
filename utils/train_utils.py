@@ -1,8 +1,9 @@
 import torch
 import numpy as np
 from tqdm import tqdm
-from .test_utils import test_predictor, test_classifier, test_hybrid
-from .label_utils import convert_label, get_one_hot_label
+from .test_utils import test_predictor, test_classifier, test_hybrid, test_contrastive
+from .label_utils import convert_label, get_one_hot_label, get_extreme_label_pairs, get_nondiag_cartesian
+from .contrastive_utils import compute_contrastive_logits
 
 
 def process_instance(ins, ins_idx, data_len_dict, feature_dim_dict, file_idx=0):
@@ -155,3 +156,56 @@ def train_hybrid(result_dim, model, optimizer, scheduler,
                 data_len, pred_len, tgt_clip_value,
                 value_threshold, strong_threshold,
                 device, save_dir)
+
+
+def train_contrastive(result_dim, model, optimizer, scheduler,
+                      train_loader, test_loader, test_bs,
+                      data_len, pred_len, tgt_clip_value,
+                      value_threshold, strong_threshold,
+                      epoch, device, save_dir):
+
+    if pred_len > 1:
+        raise NotImplementedError("Classifier has not yet been implemented for pred_len bigger than 1")
+    
+    for epoch in tqdm(range(epoch)):
+        if epoch % 10 == 0:
+            test_contrastive(result_dim, model, test_loader,
+                             data_len, pred_len, tgt_clip_value, value_threshold,
+                             device, save_dir)
+
+        model.train()
+        epoch_loss, update_num = 0, 0
+        for batch in tqdm(train_loader):
+            ob = batch['ob'].to(torch.float32).to(device)
+            tr = batch['tr'].to(torch.float32).to(device)
+            volume = batch['volume'].to(torch.float32).to(device)
+            tgt = torch.clamp(batch['tgt'],
+                              min=-tgt_clip_value,
+                              max=tgt_clip_value).to(torch.float32).to(device)
+
+            out = model(ob, tr, volume, tgt[:,:data_len,:])[:,-1]
+            out = torch.exp(torch.matmul(out, out.transpose(0,1))/out.shape[1])
+            
+            label = tgt[:,-1,:].squeeze(dim=1)
+            label = convert_label(label, result_dim, value_threshold)
+            leftmost_label_idx, rightmost_label_idx = get_extreme_label_pairs(label, result_dim)
+
+            leftmost_logit = compute_contrastive_logits(out, leftmost_label_idx)
+            rightmost_logit = compute_contrastive_logits(out, rightmost_label_idx)
+
+            if len(leftmost_label_idx)>1 or len(rightmost_label_idx)>1:
+                loss = leftmost_logit + rightmost_logit
+                loss.backward()
+
+                optimizer.step()
+                optimizer.zero_grad()
+            
+                epoch_loss += loss.detach().cpu().item()  
+                update_num += 1      
+        
+        print(f'Epoch {epoch} Average Loss: {epoch_loss/update_num}')
+        scheduler.step()
+    
+    test_contrastive(result_dim, model, test_loader,
+                     data_len, pred_len, tgt_clip_value, value_threshold,
+                     device, save_dir)

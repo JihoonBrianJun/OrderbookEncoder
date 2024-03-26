@@ -11,11 +11,11 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from model.minute import OrderbookTrade2Predictor, OrderbookTrade2Classifier
+from model.minute import OrderbookTradeTransformer, OrderbookTrade2Predictor, OrderbookTrade2Classifier
 from preprocess.minute_preprocess_all import preprocess_orderbook, preprocess_trade, preprocess_combine
 from preprocess.minute_train_preprocess import train_preprocess
 from utils.train_utils import process_instance
-from utils.test_utils import test_predictor, test_classifier
+from utils.test_utils import test_predictor, test_classifier, test_hybrid, test_contrastive
 
 
 def main(args):
@@ -44,6 +44,19 @@ def main(args):
     elif args.model_type == 'classifier':
         model = OrderbookTrade2Classifier(result_dim=args.result_dim,
                                           model_dim=args.model_dim,
+                                          n_head=args.n_head,
+                                          num_layers=args.num_layers,
+                                          ob_feature_dim=int(2*(60/args.data_freq)),
+                                          tr_feature_dim=int(2*(60/args.data_freq)*args.price_interval_num),
+                                          volume_feature_dim=1,
+                                          tgt_feature_dim=1,
+                                          data_len=args.data_len,
+                                          pred_len=args.pred_len,
+                                          ob_importance=args.ob_importance,
+                                          tr_importance=args.tr_importance).to(device)
+
+    elif args.model_type == 'classifier':
+        model = OrderbookTradeTransformer(model_dim=args.model_dim,
                                           n_head=args.n_head,
                                           num_layers=args.num_layers,
                                           ob_feature_dim=int(2*(60/args.data_freq)),
@@ -150,21 +163,33 @@ def main(args):
                 elif args.model_type == 'hybrid':
                     loss_function1 = nn.MSELoss()
                     loss_function2 = nn.CrossEntropyLoss()
-                    test_classifier(result_dim=args.result_dim,
-                                    model=model,
-                                    loss_function1=loss_function1,
-                                    loss_function2=loss_function2,
-                                    loss_weight=args.hybrid_loss_weight,
-                                    dataloader=dataloader,
-                                    test_bs=bs,
-                                    data_len=args.data_len,
-                                    pred_len=args.pred_len,
-                                    tgt_clip_value=args.tgt_clip_value,
-                                    value_threshold=args.value_threshold,
-                                    strong_threshold=args.strong_threshold,
-                                    device=device,
-                                    save_dir=None,
-                                    save_ckpt=False)
+                    test_hybrid(result_dim=args.result_dim,
+                                model=model,
+                                loss_function1=loss_function1,
+                                loss_function2=loss_function2,
+                                loss_weight=args.hybrid_loss_weight,
+                                dataloader=dataloader,
+                                test_bs=bs,
+                                data_len=args.data_len,
+                                pred_len=args.pred_len,
+                                tgt_clip_value=args.tgt_clip_value,
+                                value_threshold=args.value_threshold,
+                                strong_threshold=args.strong_threshold,
+                                device=device,
+                                save_dir=None,
+                                save_ckpt=False)
+
+                elif args.model_type == 'contrastive':
+                    test_contrastive(result_dim=args.result_dim,
+                                     model=model,
+                                     dataloader=dataloader,
+                                     data_len=args.data_len,
+                                     pred_len=args.pred_len,
+                                     tgt_clip_value=args.tgt_clip_value,
+                                     value_threshold=args.value_threshold,
+                                     device=device,
+                                     save_dir=None,
+                                     save_ckpt=False)
             
             except:
                 print(f'Loop {loop_idx} Code {market_code} Evaluation failed!')
@@ -183,7 +208,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_freq', type=int, default=5)
     parser.add_argument('--clip_range', type=int, default=2)
     parser.add_argument('--price_interval_num', type=int, default=21)
-    parser.add_argument('--model_type', type=str, default='predictor', choices=['predictor', 'classifier', 'hybrid'])
+    parser.add_argument('--model_type', type=str, default='predictor', choices=['predictor', 'classifier', 'hybrid', 'contrastive'])
     parser.add_argument('--result_dim', type=int, default=3)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
