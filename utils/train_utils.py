@@ -168,8 +168,8 @@ def train_contrastive(result_dim, contrastive_side, model, optimizer, scheduler,
     
     for epoch in tqdm(range(epoch)):
         if epoch % 10 == 0:
-            test_contrastive(result_dim, model, test_loader,
-                             data_len, pred_len, tgt_clip_value, value_threshold,
+            test_contrastive(result_dim, contrastive_side, model, 
+                             test_loader, data_len, pred_len, tgt_clip_value, value_threshold,
                              device, save_dir)
 
         model.train()
@@ -215,6 +215,6 @@ def train_contrastive(result_dim, contrastive_side, model, optimizer, scheduler,
         print(f'Epoch {epoch} Average Loss: {epoch_loss/update_num}')
         scheduler.step()
     
-    test_contrastive(result_dim, model, test_loader,
-                     data_len, pred_len, tgt_clip_value, value_threshold,
+    test_contrastive(result_dim, contrastive_side, model, 
+                     test_loader, data_len, pred_len, tgt_clip_value, value_threshold,
                      device, save_dir)

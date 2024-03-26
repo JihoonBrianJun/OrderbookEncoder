@@ -203,14 +203,18 @@ def test_contrastive(result_dim, contrastive_side, model,
             test_loss += loss.detach().cpu().item()
             update_num += 1
             
-            metrics = compute_contrastive_metrics(out, leftmost_label_idx, leftmost_label_idx)
+            metrics = compute_contrastive_metrics(out, leftmost_label_idx, rightmost_label_idx)
             for key in metric_dict.keys():
                 metric_dict[key] += metrics[key]
 
         if idx == 0:
-            print(f'Out(Leftmost Label): {torch.sort(out[leftmost_label_idx], dim=1).indices[:,-10:-1].flip(dims=(1,))}\n Label(Leftmost): {leftmost_label_idx}')
-            print(f'Out(Rightmost Label): {torch.sort(out[rightmost_label_idx], dim=1).indices[:,-10:-1].flip(dims=(1,))}\n Label(Rightmost): {rightmost_label_idx}')
+            if contrastive_side != 'right':
+                print(f'Out(Leftmost Label): {torch.sort(out[leftmost_label_idx], dim=1).indices[:,-10:-1].flip(dims=(1,))}\n Label(Leftmost): {leftmost_label_idx}')
+            if contrastive_side != 'left':
+                print(f'Out(Rightmost Label): {torch.sort(out[rightmost_label_idx], dim=1).indices[:,-10:-1].flip(dims=(1,))}\n Label(Rightmost): {rightmost_label_idx}')
             
     print(f'Test Average Loss: {test_loss / update_num}')
-    print(f'Test Correct (Leftmost label): {metric_dict["leftmost_correct"]} out of {metric_dict["leftmost_tgt"]}')
-    print(f'Test Correct (Rightmost label): {metric_dict["rightmost_correct"]} out of {metric_dict["rightmost_tgt"]}')
+    if contrastive_side != 'right':
+        print(f'Test Correct (Leftmost label): {metric_dict["leftmost_correct"]} out of {metric_dict["leftmost_tgt"]}')
+    if contrastive_side != 'left':
+        print(f'Test Correct (Rightmost label): {metric_dict["rightmost_correct"]} out of {metric_dict["rightmost_tgt"]}')
