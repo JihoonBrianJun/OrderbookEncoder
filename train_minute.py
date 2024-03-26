@@ -182,12 +182,10 @@ def main(args):
                           scheduler=scheduler,
                           train_loader=train_loader,
                           test_loader=test_loader,
-                          test_bs=test_bs,
                           data_len=data_len_dict['ob'],
                           pred_len=data_len_dict['tgt'] - data_len_dict['ob'],
                           tgt_clip_value=args.tgt_clip_value,
                           value_threshold=args.value_threshold,
-                          strong_threshold=args.strong_threshold,
                           epoch=args.epoch,
                           device=device,
                           save_dir=save_dir)
@@ -205,7 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--gpu', type=bool, default=False)
     parser.add_argument('--epoch', type=int, default=10)
-    parser.add_argument('--bs', type=int, default=32)
+    parser.add_argument('--bs', type=int, default=64)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--gamma', type=float, default=0.999)
     parser.add_argument('--tgt_clip_value', type=float, default=2)

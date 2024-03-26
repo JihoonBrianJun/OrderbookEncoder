@@ -159,9 +159,8 @@ def train_hybrid(result_dim, model, optimizer, scheduler,
 
 
 def train_contrastive(result_dim, model, optimizer, scheduler,
-                      train_loader, test_loader, test_bs,
-                      data_len, pred_len, tgt_clip_value,
-                      value_threshold, strong_threshold,
+                      train_loader, test_loader,
+                      data_len, pred_len, tgt_clip_value, value_threshold,
                       epoch, device, save_dir):
 
     if pred_len > 1:
