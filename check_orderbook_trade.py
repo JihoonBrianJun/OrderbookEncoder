@@ -27,6 +27,7 @@ def main(args):
     else:
         device = torch.device("cpu")
 
+    model_ckpt_path = f'{args.model_ckpt_path}_{args.model_type}_{args.pred_len}.pt'
 
     if args.model_type in ['predictor', 'hybrid']:   
         model = OrderbookTrade2Predictor(model_dim=args.model_dim,
@@ -55,7 +56,8 @@ def main(args):
                                           ob_importance=args.ob_importance,
                                           tr_importance=args.tr_importance).to(device)
 
-    elif args.model_type == 'classifier':
+    elif args.model_type == 'contrastive':
+        model_ckpt_path = f'{args.model_ckpt_path}_{args.model_type}_{args.pred_len}_{args.contrastive_side}.pt'
         model = OrderbookTradeTransformer(model_dim=args.model_dim,
                                           n_head=args.n_head,
                                           num_layers=args.num_layers,
@@ -68,7 +70,7 @@ def main(args):
                                           ob_importance=args.ob_importance,
                                           tr_importance=args.tr_importance).to(device)
         
-    model.load_state_dict(torch.load(f'{args.model_ckpt_path}_{args.model_type}_{args.pred_len}.pt', map_location=device))
+    model.load_state_dict(torch.load(model_ckpt_path, map_location=device))
 
     for loop_idx in tqdm(range(args.loop_rep)):
         orderbook_data = []

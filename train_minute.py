@@ -176,6 +176,7 @@ def main(args):
                      save_dir=save_dir)
 
     elif args.train_type == 'contrastive':
+        save_dir = f'{args.save_dir}_{args.train_type}_{args.pred_len}_{args.contrastive_side}.pt'
         train_contrastive(result_dim=args.result_dim,
                           contrastive_side=args.contrastive_side,
                           model=model,
