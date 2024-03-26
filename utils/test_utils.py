@@ -152,7 +152,7 @@ def test_hybrid(result_dim, model,
     print(f'Test Precision (Strong): {metric_dict["strong_prec_correct"]} out of {metric_dict["strong_prec_tgt"]}')
 
 
-def test_contrastive(result_dim, model,
+def test_contrastive(result_dim, contrastive_side, model,
                      dataloader, data_len, pred_len, tgt_clip_value, value_threshold,
                      device, save_dir, save_ckpt=True, load_ckpt=False):
     
@@ -185,11 +185,21 @@ def test_contrastive(result_dim, model,
         label = convert_label(label, result_dim, value_threshold)
         leftmost_label_idx, rightmost_label_idx = get_extreme_label_pairs(label, result_dim)
 
-        leftmost_logit = compute_contrastive_logits(out, leftmost_label_idx)
-        rightmost_logit = compute_contrastive_logits(out, rightmost_label_idx)
+        if contrastive_side != 'right':
+            leftmost_logit = compute_contrastive_logits(out, leftmost_label_idx)
+        if contrastive_side != 'left':
+            rightmost_logit = compute_contrastive_logits(out, rightmost_label_idx)
 
-        if len(leftmost_label_idx)>1 or len(rightmost_label_idx)>1:
+        if contrastive_side == 'left' and len(leftmost_label_idx)>1:
+            loss = leftmost_logit
+        elif contrastive_side == 'right' and len(rightmost_label_idx)>1:
+            loss = rightmost_logit
+        elif contrastive_side == 'both' and len(leftmost_label_idx)+len(rightmost_label_idx)>1:
             loss = leftmost_logit + rightmost_logit
+        else:
+            loss = None
+
+        if loss is not None:
             test_loss += loss.detach().cpu().item()
             update_num += 1
             

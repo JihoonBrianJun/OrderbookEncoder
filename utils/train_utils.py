@@ -158,7 +158,7 @@ def train_hybrid(result_dim, model, optimizer, scheduler,
                 device, save_dir)
 
 
-def train_contrastive(result_dim, model, optimizer, scheduler,
+def train_contrastive(result_dim, contrastive_side, model, optimizer, scheduler,
                       train_loader, test_loader,
                       data_len, pred_len, tgt_clip_value, value_threshold,
                       epoch, device, save_dir):
@@ -189,18 +189,28 @@ def train_contrastive(result_dim, model, optimizer, scheduler,
             label = convert_label(label, result_dim, value_threshold)
             leftmost_label_idx, rightmost_label_idx = get_extreme_label_pairs(label, result_dim)
 
-            leftmost_logit = compute_contrastive_logits(out, leftmost_label_idx)
-            rightmost_logit = compute_contrastive_logits(out, rightmost_label_idx)
+            if contrastive_side != 'right':
+                leftmost_logit = compute_contrastive_logits(out, leftmost_label_idx)
+            if contrastive_side != 'left':
+                rightmost_logit = compute_contrastive_logits(out, rightmost_label_idx)
 
-            if len(leftmost_label_idx)>1 or len(rightmost_label_idx)>1:
+            if contrastive_side == 'left' and len(leftmost_label_idx)>1:
+                loss = leftmost_logit
+            elif contrastive_side == 'right' and len(rightmost_label_idx)>1:
+                loss = rightmost_logit
+            elif contrastive_side == 'both' and len(leftmost_label_idx)+len(rightmost_label_idx)>1:
                 loss = leftmost_logit + rightmost_logit
+            else:
+                loss = None
+
+            if loss is not None:
                 loss.backward()
 
                 optimizer.step()
                 optimizer.zero_grad()
             
                 epoch_loss += loss.detach().cpu().item()  
-                update_num += 1      
+                update_num += 1
         
         print(f'Epoch {epoch} Average Loss: {epoch_loss/update_num}')
         scheduler.step()

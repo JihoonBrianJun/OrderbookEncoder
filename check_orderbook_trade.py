@@ -181,6 +181,7 @@ def main(args):
 
                 elif args.model_type == 'contrastive':
                     test_contrastive(result_dim=args.result_dim,
+                                     contrastive_side=args.contrastive_side,
                                      model=model,
                                      dataloader=dataloader,
                                      data_len=args.data_len,
@@ -221,5 +222,6 @@ if __name__ == '__main__':
     parser.add_argument('--ob_importance', type=float, default=0.4)
     parser.add_argument('--tr_importance', type=float, default=0.4)
     parser.add_argument('--hybrid_loss_weight', type=float, default=0.5)
+    parser.add_argument('--contrastive_side', type=str, default='both', choices=['left', 'right', 'both'])
     args = parser.parse_args()
     main(args)
