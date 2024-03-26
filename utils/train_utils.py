@@ -2,8 +2,8 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from .test_utils import test_predictor, test_classifier, test_hybrid, test_contrastive
-from .label_utils import convert_label, get_one_hot_label, get_extreme_label_pairs, get_nondiag_cartesian
-from .contrastive_utils import compute_contrastive_logits
+from .label_utils import convert_label, get_one_hot_label, get_extreme_label_pairs
+from .contrastive_utils import compute_inner_product, compute_contrastive_loss
 
 
 def process_instance(ins, ins_idx, data_len_dict, feature_dim_dict, file_idx=0):
@@ -183,25 +183,13 @@ def train_contrastive(result_dim, contrastive_side, model, optimizer, scheduler,
                               max=tgt_clip_value).to(torch.float32).to(device)
 
             out = model(ob, tr, volume, tgt[:,:data_len,:])[:,-1]
-            out = torch.exp(torch.matmul(out, out.transpose(0,1))/out.shape[1])
+            out = compute_inner_product(out)
             
             label = tgt[:,-1,:].squeeze(dim=1)
             label = convert_label(label, result_dim, value_threshold)
             leftmost_label_idx, rightmost_label_idx = get_extreme_label_pairs(label, result_dim)
 
-            if contrastive_side != 'right':
-                leftmost_logit = compute_contrastive_logits(out, leftmost_label_idx)
-            if contrastive_side != 'left':
-                rightmost_logit = compute_contrastive_logits(out, rightmost_label_idx)
-
-            if contrastive_side == 'left' and len(leftmost_label_idx)>1:
-                loss = leftmost_logit
-            elif contrastive_side == 'right' and len(rightmost_label_idx)>1:
-                loss = rightmost_logit
-            elif contrastive_side == 'both' and max(len(leftmost_label_idx),len(rightmost_label_idx))>1:
-                loss = leftmost_logit + rightmost_logit
-            else:
-                loss = None
+            loss = compute_contrastive_loss(out, leftmost_label_idx, rightmost_label_idx, contrastive_side)
 
             if loss is not None:
                 loss.backward()
