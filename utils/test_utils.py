@@ -194,7 +194,7 @@ def test_contrastive(result_dim, contrastive_side, model,
             loss = leftmost_logit
         elif contrastive_side == 'right' and len(rightmost_label_idx)>1:
             loss = rightmost_logit
-        elif contrastive_side == 'both' and len(leftmost_label_idx)+len(rightmost_label_idx)>1:
+        elif contrastive_side == 'both' and max(len(leftmost_label_idx),len(rightmost_label_idx))>1:
             loss = leftmost_logit + rightmost_logit
         else:
             loss = None
