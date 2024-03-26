@@ -4,8 +4,8 @@ from .label_utils import get_nondiag_cartesian
 
 
 def compute_inner_product(out):
-    # out = nn.functional.normalize(out, dim=1)
-    return torch.exp(torch.matmul(out, out.transpose(0,1))/out.shape[1])
+    out = nn.functional.normalize(out, dim=1)
+    return torch.exp(torch.matmul(out, out.transpose(0,1)))
 
 
 def compute_contrastive_logits(out, idx):
