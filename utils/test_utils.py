@@ -197,9 +197,9 @@ def test_contrastive(result_dim, contrastive_side, model,
 
         if idx == 0:
             if contrastive_side != 'right':
-                print(f'Out(Leftmost Label): {torch.sort(out[leftmost_label_idx], dim=1).indices[:,-10:-1].flip(dims=(1,))}\n Label(Leftmost): {leftmost_label_idx}')
+                print(f'Out(Leftmost Label): {torch.sort(out[leftmost_label_idx], dim=1).indices[:,-10:].flip(dims=(1,))}\n Label(Leftmost): {leftmost_label_idx}')
             if contrastive_side != 'left':
-                print(f'Out(Rightmost Label): {torch.sort(out[rightmost_label_idx], dim=1).indices[:,-10:-1].flip(dims=(1,))}\n Label(Rightmost): {rightmost_label_idx}')
+                print(f'Out(Rightmost Label): {torch.sort(out[rightmost_label_idx], dim=1).indices[:,-10:].flip(dims=(1,))}\n Label(Rightmost): {rightmost_label_idx}')
             
     print(f'Test Average Loss: {test_loss / update_num}')
     if contrastive_side != 'right':
