@@ -18,7 +18,7 @@ def process_instance(ins, ins_idx, data_len_dict, feature_dim_dict, file_idx=0):
 def train_predictor(model, optimizer, scheduler, loss_function,
                     train_loader, test_loader, test_bs,
                     data_len, pred_len, tgt_clip_value,
-                    value_threshold, strong_threshold,
+                    value_threshold, strong_threshold, data_amplifier,
                     epoch, device, save_dir):
     
     for epoch in tqdm(range(epoch)):
@@ -26,7 +26,7 @@ def train_predictor(model, optimizer, scheduler, loss_function,
             test_predictor(model, loss_function,
                            test_loader, test_bs,
                            data_len, pred_len, tgt_clip_value,
-                           value_threshold, strong_threshold,
+                           value_threshold, strong_threshold, data_amplifier,
                            device, save_dir)
 
         model.train()
@@ -49,13 +49,13 @@ def train_predictor(model, optimizer, scheduler, loss_function,
                 optimizer.zero_grad()
             
             epoch_loss += loss.detach().cpu().item()        
-        print(f'Epoch {epoch} Average Loss: {epoch_loss/(idx+1)}')
+        print(f'Epoch {epoch} Average Loss: {np.sqrt(epoch_loss/(idx+1))/data_amplifier}')
         scheduler.step()
     
     test_predictor(model, loss_function,
                    test_loader, test_bs,
                    data_len, pred_len, tgt_clip_value,
-                   value_threshold, strong_threshold,
+                   value_threshold, strong_threshold, data_amplifier,
                    device, save_dir)
 
 

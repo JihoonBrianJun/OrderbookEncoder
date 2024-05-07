@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from tqdm import tqdm
 from .label_utils import convert_label, get_one_hot_label, get_extreme_label_pairs
 from .metric_utils import compute_predictor_metrics, compute_classifier_metrics, compute_contrastive_metrics
@@ -7,7 +8,7 @@ from .contrastive_utils import compute_inner_product, compute_contrastive_loss
 def test_predictor(model, loss_function,
                    dataloader, test_bs,
                    data_len, pred_len, tgt_clip_value,
-                   value_threshold, strong_threshold,
+                   value_threshold, strong_threshold, data_amplifier,
                    device, save_dir, save_ckpt=True, load_ckpt=False):
     
     if save_ckpt:
@@ -35,7 +36,7 @@ def test_predictor(model, loss_function,
                 out = model(ob, tr, volume, torch.cat((tgt[:,:data_len,:], out[:,-step:].unsqueeze(dim=2)),dim=1))
 
         label = tgt[:,1:,:].squeeze(dim=2)                    
-        loss = loss_function(out,label)
+        loss = loss_function(out[:,-1],label[:,-1])
         test_loss += loss.detach().cpu().item()
 
         metrics = compute_predictor_metrics(out[:,-1], label[:,-1], value_threshold, strong_threshold)
@@ -45,7 +46,7 @@ def test_predictor(model, loss_function,
         if idx == 0:
             print(f'Out: {out[:,-1]}\n Label: {label[:,-1]}')
             
-    print(f'Test Average Loss: {test_loss / (idx+1)}')
+    print(f'Test Average Loss: {np.sqrt(test_loss / (idx+1))/data_amplifier}')
     print(f'Test Correct: {metric_dict["correct"]} out of {test_bs*(idx+1)}')
     print(f'Test Recall: {metric_dict["rec_correct"]} out of {metric_dict["rec_tgt"]}')
     print(f'Test Precision (Strong): {metric_dict["strong_prec_correct"]} out of {metric_dict["strong_prec_tgt"]}')

@@ -142,6 +142,7 @@ def main(args):
                                    tgt_clip_value=args.tgt_clip_value,
                                    value_threshold=args.value_threshold,
                                    strong_threshold=args.strong_threshold,
+                                   data_amplifier=args.data_amplifier,
                                    device=device,
                                    save_dir=None,
                                    save_ckpt=False)
@@ -212,15 +213,16 @@ if __name__ == '__main__':
     parser.add_argument('--clip_range', type=int, default=2)
     parser.add_argument('--price_interval_num', type=int, default=21)
     parser.add_argument('--model_type', type=str, default='predictor', choices=['predictor', 'classifier', 'hybrid', 'contrastive'])
-    parser.add_argument('--result_dim', type=int, default=3)
+    parser.add_argument('--result_dim', type=int, default=4)
     parser.add_argument('--model_dim', type=int, default=64)
     parser.add_argument('--n_head', type=int, default=2)
     parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--gpu', type=bool, default=False)
     parser.add_argument('--bs', type=int, default=256)
     parser.add_argument('--tgt_clip_value', type=float, default=1)
-    parser.add_argument('--value_threshold', type=float, default=0.5)
-    parser.add_argument('--strong_threshold', type=float, default=0.5)
+    parser.add_argument('--value_threshold', type=float, default=1)
+    parser.add_argument('--strong_threshold', type=float, default=1)
+    parser.add_argument('--data_amplifier', type=float, default=10)
     parser.add_argument('--ob_importance', type=float, default=0.4)
     parser.add_argument('--tr_importance', type=float, default=0.4)
     parser.add_argument('--hybrid_loss_weight', type=float, default=0.5)
